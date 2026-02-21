@@ -1,0 +1,31 @@
+name: Brute Force Build
+on: [push, workflow_dispatch] # Manual build button + build on save
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # FORCE INSTALL GRADLE: This ignores your broken gradlew file
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.5 
+
+      # EXECUTE BUILD: Note we use 'gradle' not './gradlew'
+      - name: Build with Fresh Gradle
+        run: gradle assembleDebug --stacktrace
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DhakaFlix-App
+          path: app/build/outputs/apk/debug/app-debug.apk
