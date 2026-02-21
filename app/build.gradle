@@ -3,7 +3,11 @@ apply plugin: 'com.android.application'
 android {
     namespace 'com.slymax.webview'
     compileSdkVersion 34
-
+    sourceSets {
+        main {
+            manifest.srcFile 'src/main/AndroidManifest.xml'
+        }
+    }
     defaultConfig {
         applicationId "com.slymax.webview"
         minSdkVersion 24
