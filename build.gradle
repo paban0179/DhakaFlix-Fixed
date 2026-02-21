@@ -4,7 +4,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        // This is the engine that allows Gradle to build Android apps
+        // The "Engine" for Android builds
         classpath 'com.android.tools.build:gradle:8.2.2'
     }
 }
