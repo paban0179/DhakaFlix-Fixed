@@ -14,7 +14,12 @@ apply plugin: 'com.android.application'
 android {
     namespace 'com.slymax.webview'
     compileSdkVersion 34 // Updated to modern standard
-
+    sourceSets {
+        main {
+            // This tells Gradle: "Look inside my current folder for the manifest"
+            manifest.srcFile 'src/main/AndroidManifest.xml'
+        }
+    }
     defaultConfig {
         applicationId "com.slymax.webview"
         minSdkVersion 24     // Better compatibility for modern apps
