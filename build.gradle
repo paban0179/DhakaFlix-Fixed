@@ -1,18 +1,38 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
-
 buildscript {
     repositories {
-        mavenCentral()
         google()
+        mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.1.2'
+        // This is the "Translator" that makes old code work with new Gradle
+        classpath 'com.android.tools.build:gradle:8.2.2'
     }
 }
 
-allprojects {
-    repositories {
-        mavenCentral()
-        google()
+apply plugin: 'com.android.application'
+
+android {
+    namespace 'com.slymax.webview'
+    compileSdkVersion 34 // Updated to modern standard
+
+    defaultConfig {
+        applicationId "com.slymax.webview"
+        minSdkVersion 24     // Better compatibility for modern apps
+        targetSdkVersion 34  // Matches latest Android requirements
+        versionCode 1
+        versionName "1.0"
     }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    // Basic modern libraries
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
 }
