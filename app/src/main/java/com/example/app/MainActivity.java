@@ -1,4 +1,4 @@
-package com.slymax.webview; // Fixed to match Slymax template
+package com.slymax.webview;
 
 import android.content.Intent;
 import android.net.Uri;
@@ -7,7 +7,7 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.SearchView;
+import android.widget.SearchView; // Using standard Android widget to avoid conflict
 
 public class MainActivity extends AppCompatActivity {
     private WebView webView;
@@ -17,8 +17,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        webView = findViewById(R.id.webview);
-        SearchView searchView = findViewById(R.id.searchView);
+        webView = (WebView) findViewById(R.id.webview);
+        SearchView searchView = (SearchView) findViewById(R.id.searchView);
 
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setDomStorageEnabled(true);
