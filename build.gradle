@@ -1,31 +1,30 @@
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        // This is the "Translator" that makes old code work with new Gradle
-        classpath 'com.android.tools.build:gradle:8.2.2'
-    }
+plugins {
+    id 'com.android.application'
 }
 
-apply plugin: 'com.android.application'
-
 android {
+    // This MUST match the package name in your Manifest
     namespace 'com.slymax.webview'
-    compileSdkVersion 34 // Updated to modern standard
+    compileSdkVersion 34
+
     sourceSets {
         main {
-            // This tells Gradle: "Look inside my current folder for the manifest"
-            manifest.srcFile 'src/main/AndroidManifest.xml'
+            // This tells Gradle exactly where your files are hiding
+            manifest.srcFile "${project.projectDir}/src/main/AndroidManifest.xml"
+            java.srcDirs = ["${project.projectDir}/src/main/java"]
+            res.srcDirs = ["${project.projectDir}/src/main/res"]
+            assets.srcDirs = ["${project.projectDir}/src/main/assets"]
         }
     }
+
     defaultConfig {
         applicationId "com.slymax.webview"
-        minSdkVersion 24     // Better compatibility for modern apps
-        targetSdkVersion 34  // Matches latest Android requirements
+        minSdkVersion 24
+        targetSdkVersion 34
         versionCode 1
         versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -34,10 +33,16 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
 }
 
 dependencies {
-    // Basic modern libraries
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.webkit:webkit:1.9.0'
 }
