@@ -9,12 +9,12 @@
         android:id="@+id/searchView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:queryHint="Search movies or series..."
+        android:queryHint="Search movies..."
         android:background="#1E1E1E"
         android:iconifiedByDefault="false" />
 
     <WebView
-        android:id="@+id/webView"
+        android:id="@+id/webview"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 </LinearLayout>
