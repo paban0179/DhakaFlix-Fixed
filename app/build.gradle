@@ -3,11 +3,17 @@ apply plugin: 'com.android.application'
 android {
     namespace 'com.slymax.webview'
     compileSdkVersion 34
+
+    // The "GPS" fix to find your files
     sourceSets {
         main {
             manifest.srcFile 'src/main/AndroidManifest.xml'
+            java.srcDirs = ['src/main/java']
+            res.srcDirs = ['src/main/res']
+            assets.srcDirs = ['src/main/assets']
         }
     }
+
     defaultConfig {
         applicationId "com.slymax.webview"
         minSdkVersion 24
@@ -16,15 +22,14 @@ android {
         versionName "1.0"
     }
 
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 }
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'
+    implementation 'androidx.webkit:webkit:1.9.0'
 }
