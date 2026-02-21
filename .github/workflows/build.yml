@@ -14,23 +14,19 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # FORCE INSTALL GRADLE: Ensures we use version 8.5 regardless of project files
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.5 
 
-      # EXECUTE BUILD: Using '--no-daemon' for better compatibility in CI
+      # We add 'clean' here to wipe old, incompatible files before building
       - name: Build with Fresh Gradle
-        run: gradle assembleDebug --stacktrace --no-daemon
+        run: gradle clean assembleDebug --stacktrace --no-daemon
 
-      # UPLOAD THE RESULT: This creates the "Artifacts" link
       - name: Upload APK Artifact
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: DhakaFlix-App-Package
-          # This "recursive wildcard" finds the APK even if it's in a subfolder
+          name: DhakaFlix-App
           path: "**/build/outputs/apk/debug/*.apk"
           if-no-files-found: error
-          retention-days: 7
