@@ -1,5 +1,5 @@
 name: Brute Force Build
-on: [push, workflow_dispatch] # Manual build button + build on save
+on: [push, workflow_dispatch]
 
 jobs:
   build:
@@ -14,18 +14,21 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # FORCE INSTALL GRADLE: This ignores your broken gradlew file
+      # FORCE INSTALL GRADLE: This ignores the wrapper and uses a clean version
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.5 
 
-      # EXECUTE BUILD: Note we use 'gradle' not './gradlew'
+      # EXECUTE BUILD: Using 'gradle' command provided by the setup-gradle action
       - name: Build with Fresh Gradle
         run: gradle assembleDebug --stacktrace
 
+      # UPLOAD THE RESULT: This creates the "Artifacts" section you need
       - name: Upload APK Artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: DhakaFlix-App
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error # This will tell you exactly if the file is missing
