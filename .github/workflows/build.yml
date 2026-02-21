@@ -19,7 +19,6 @@ jobs:
         with:
           gradle-version: 8.5 
 
-      # We add 'clean' here to wipe old, incompatible files before building
       - name: Build with Fresh Gradle
         run: gradle clean assembleDebug --stacktrace --no-daemon
 
