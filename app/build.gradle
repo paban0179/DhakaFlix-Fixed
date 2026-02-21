@@ -1,35 +1,31 @@
-apply plugin: 'com.android.application'
-
 android {
     namespace 'com.slymax.webview'
-    compileSdkVersion 34
-
-    // The "GPS" fix to find your files
-    sourceSets {
-        main {
-            manifest.srcFile 'src/main/AndroidManifest.xml'
-            java.srcDirs = ['src/main/java']
-            res.srcDirs = ['src/main/res']
-            assets.srcDirs = ['src/main/assets']
-        }
-    }
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.slymax.webview"
-        minSdkVersion 24
+        // Version 21 supports Android 5.0+, making it compatible with almost all phones
+        minSdkVersion 21
         targetSdkVersion 34
         versionCode 1
         versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        
+        // This ensures compatibility with real phone processors (ARM)
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+        }
     }
 
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
-}
-
-dependencies {
-    implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.11.0'
-    implementation 'androidx.webkit:webkit:1.9.0'
 }
