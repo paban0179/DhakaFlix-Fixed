@@ -14,7 +14,7 @@ public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
     private static final String BASE_URL =
-            "http://172.16.50.7/";
+            "http://172.16.50.7/DHAKA-FLIX-7/English%20Movies/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,8 +26,6 @@ public class MainActivity extends AppCompatActivity {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
-        settings.setAllowFileAccess(true);
-        settings.setAllowContentAccess(true);
 
         webView.setWebViewClient(new BrowserClient());
         webView.loadUrl(BASE_URL);
@@ -37,85 +35,22 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-            String url = request.getUrl().toString();
-
-            if (url.endsWith(".mp4")) {
-                Intent intent = new Intent(Intent.ACTION_VIEW);
-                intent.setDataAndType(Uri.parse(url), "video/*");
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(intent);
-                return true;
-            }
-
-            return false;
+            return handleUrl(request.getUrl().toString());
         }
 
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
+            return handleUrl(url);
+        }
 
+        private boolean handleUrl(String url) {
             if (url.endsWith(".mp4")) {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.setDataAndType(Uri.parse(url), "video/*");
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(intent);
                 return true;
             }
-
             return false;
         }
-    }
-}                    "  var name = text.replace(/\\.[^/.]+$/, '').trim();" +
-                    "  if(!items[name]) items[name] = {name:name, url:l.href, type:'folder'};" +
-                    "  if(l.href.endsWith('.mp4') || l.href.endsWith('.mkv')) { items[name].url=l.href; items[name].type='video'; }" +
-                    "  if(l.href.endsWith('.jpg')) items[name].img = l.href;" +
-                    "});" +
-                    "for(var k in items) {" +
-                    "  var item = items[k]; if(item.name.includes('Parent') || !item.name) continue;" +
-                    "  var card = document.createElement('div');" +
-                    "  card.className = 'movie-card';" +
-                    "  card.innerHTML = '<img src=\"'+(item.img || 'https://via.placeholder.com/150x220?text=Folder')+'\" style=\"width:100%; border-radius:8px; aspect-ratio:2/3; object-fit:cover;\"><p style=\"color:white; text-align:center; font-size:12px; margin-top:5px;\">'+item.name+'</p>';" +
-                    "  card.onclick = function(u, t){ return function(){ window.location.href = (t==='video' ? 'vlc://' + u : u); }; }(item.url, item.type);" +
-                    "  container.appendChild(card);" +
-                    "}" +
-                    "document.body.innerHTML = ''; document.body.style.margin='0'; document.body.appendChild(container);" +
-                    "})()";
-                view.evaluateJavascript(script, null);
-            }
-
-            @Override
-            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                String url = request.getUrl().toString();
-                if (url.endsWith(".mp4") || url.endsWith(".mkv") || url.startsWith("vlc://")) {
-                    String cleanUrl = url.replace("vlc://", "");
-                    Intent intent = new Intent(Intent.ACTION_VIEW);
-                    intent.setPackage("org.videolan.vlc");
-                    intent.setDataAndType(Uri.parse(cleanUrl), "video/*");
-                    try { startActivity(intent); } 
-                    catch (Exception e) { intent.setPackage(null); startActivity(intent); }
-                    return true;
-                }
-                return false;
-            }
-        });
-
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-            @Override
-            public boolean onQueryTextSubmit(String query) { return false; }
-            @Override
-            public boolean onQueryTextChange(String newText) {
-                String filter = "javascript:(function() {" +
-                    "var cards = document.getElementsByClassName('movie-card');" +
-                    "var q = '" + newText.toLowerCase() + "';" +
-                    "for(var i=0; i<cards.length; i++) {" +
-                    "  var name = cards[i].innerText.toLowerCase();" +
-                    "  cards[i].style.display = name.includes(q) ? 'block' : 'none';" +
-                    "}" +
-                    "})()";
-                webView.evaluateJavascript(filter, null);
-                return true;
-            }
-        });
-
-        webView.loadUrl("http://172.16.50.7/");
     }
 }
