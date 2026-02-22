@@ -1,40 +1,70 @@
-package com.slymax.webview;
+package com.example.app;
 
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+
 import androidx.appcompat.app.AppCompatActivity;
-import android.widget.SearchView; // Using standard Android widget to avoid conflict
 
 public class MainActivity extends AppCompatActivity {
+
     private WebView webView;
+    private static final String BASE_URL =
+            "http://172.16.50.7/DHAKA-FLIX-7/English%20Movies/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
-        webView = (WebView) findViewById(R.id.webview);
-        SearchView searchView = (SearchView) findViewById(R.id.searchView);
+        webView = new WebView(this);
+        setContentView(webView);
 
-        webView.getSettings().setJavaScriptEnabled(true);
-        webView.getSettings().setDomStorageEnabled(true);
+        WebSettings settings = webView.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setAllowFileAccess(true);
+        settings.setAllowContentAccess(true);
 
-        webView.setWebViewClient(new WebViewClient() {
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                String script = "javascript:(function() {" +
-                    "var links = Array.from(document.getElementsByTagName('a'));" +
-                    "var container = document.createElement('div');" +
-                    "container.id = 'dhakaflix-grid';" +
-                    "container.style = 'display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; padding:10px; background:#121212; min-height:100vh;';" +
-                    "var items = {};" +
-                    "links.forEach(l => {" +
-                    "  var text = l.innerText.trim();" +
-                    "  var name = text.replace(/\\.[^/.]+$/, '').trim();" +
+        webView.setWebViewClient(new BrowserClient());
+        webView.loadUrl(BASE_URL);
+    }
+
+    private class BrowserClient extends WebViewClient {
+
+        @Override
+        public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+            String url = request.getUrl().toString();
+
+            if (url.endsWith(".mp4")) {
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setDataAndType(Uri.parse(url), "video/*");
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+                return true;
+            }
+
+            return false;
+        }
+
+        @Override
+        public boolean shouldOverrideUrlLoading(WebView view, String url) {
+
+            if (url.endsWith(".mp4")) {
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setDataAndType(Uri.parse(url), "video/*");
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+                return true;
+            }
+
+            return false;
+        }
+    }
+}                    "  var name = text.replace(/\\.[^/.]+$/, '').trim();" +
                     "  if(!items[name]) items[name] = {name:name, url:l.href, type:'folder'};" +
                     "  if(l.href.endsWith('.mp4') || l.href.endsWith('.mkv')) { items[name].url=l.href; items[name].type='video'; }" +
                     "  if(l.href.endsWith('.jpg')) items[name].img = l.href;" +
