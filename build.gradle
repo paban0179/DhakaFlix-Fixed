@@ -4,17 +4,13 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        // This is the engine that runs the Android plugin
+        // The engine for Android builds
         classpath 'com.android.tools.build:gradle:8.7.0'
     }
 }
 
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
+// We removed allprojects { repositories { ... } } from here 
+// because it is now managed by settings.gradle
 
 task clean(type: Delete) {
     delete rootProject.buildDir
