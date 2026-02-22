@@ -14,6 +14,7 @@ public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
 
+    // Home page
     private static final String BASE_URL = "http://172.16.50.4/";
 
     @Override
@@ -23,6 +24,10 @@ public class MainActivity extends AppCompatActivity {
         webView = new WebView(this);
         setContentView(webView);
 
+        // Required for TV remote navigation
+        webView.setFocusable(true);
+        webView.setFocusableInTouchMode(true);
+
         WebSettings settings = webView.getSettings();
 
         settings.setJavaScriptEnabled(true);
@@ -31,12 +36,10 @@ public class MainActivity extends AppCompatActivity {
         settings.setAllowContentAccess(true);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
 
-        // Enable pinch zoom
+        // Zoom support (useful on phone)
         settings.setSupportZoom(true);
         settings.setBuiltInZoomControls(true);
         settings.setDisplayZoomControls(false);
-
-        // Better scaling
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
 
@@ -44,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
         webView.loadUrl(BASE_URL);
     }
 
+    // Back button behavior
     @Override
     public void onBackPressed() {
         if (webView.canGoBack()) {
@@ -74,10 +78,21 @@ public class MainActivity extends AppCompatActivity {
                 lower.endsWith(".avi") ||
                 lower.endsWith(".mov")) {
 
-                Intent intent = new Intent(Intent.ACTION_VIEW);
-                intent.setDataAndType(Uri.parse(url), "video/*");
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(intent);
+                try {
+                    // Force VLC first (for audio track switching)
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setPackage("org.videolan.vlc");
+                    intent.setDataAndType(Uri.parse(url), "video/*");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+
+                } catch (Exception e) {
+                    // Fallback if VLC not installed
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(Uri.parse(url), "video/*");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                }
 
                 return true;
             }
