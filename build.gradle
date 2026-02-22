@@ -4,8 +4,8 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        // The "Engine" for Android builds
-        classpath 'com.android.tools.build:gradle:8.2.2'
+        // This is the engine that runs the Android plugin
+        classpath 'com.android.tools.build:gradle:8.7.0'
     }
 }
 
