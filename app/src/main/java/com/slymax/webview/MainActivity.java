@@ -3,11 +3,11 @@ package com.slymax.webview;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.KeyEvent;
-import android.view.MotionEvent;
 import android.view.View;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
@@ -24,8 +24,8 @@ public class MainActivity extends AppCompatActivity {
 
     private float cursorX = 300;
     private float cursorY = 300;
-    private final int MOVE_STEP = 40;
 
+    private final int MOVE_STEP = 50;
     private static final String HOME_URL = "http://172.16.50.4/";
 
     @Override
@@ -37,15 +37,23 @@ public class MainActivity extends AppCompatActivity {
         webView = new WebView(this);
         rootLayout.addView(webView);
 
-        // Cursor View
+        // Create circular cursor
         cursorView = new View(this);
-        cursorView.setBackgroundColor(Color.RED);
+
+        GradientDrawable circle = new GradientDrawable();
+        circle.setShape(GradientDrawable.OVAL);
+        circle.setColor(Color.parseColor("#80FFFFFF")); // semi transparent white
+        circle.setStroke(3, Color.BLACK);
+
+        cursorView.setBackground(circle);
+
         FrameLayout.LayoutParams params =
-                new FrameLayout.LayoutParams(20, 20);
+                new FrameLayout.LayoutParams(40, 40);
         params.gravity = Gravity.TOP | Gravity.LEFT;
         cursorView.setLayoutParams(params);
 
         rootLayout.addView(cursorView);
+
         setContentView(rootLayout);
 
         setupWebView();
@@ -132,7 +140,6 @@ public class MainActivity extends AppCompatActivity {
                 return true;
         }
 
-        // Prevent cursor going negative
         if (cursorX < 0) cursorX = 0;
         if (cursorY < 0) cursorY = 0;
 
