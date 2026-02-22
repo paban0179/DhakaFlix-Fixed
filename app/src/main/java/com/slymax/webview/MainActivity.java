@@ -55,7 +55,6 @@ public class MainActivity extends AppCompatActivity {
                     intent.setDataAndType(Uri.parse(url), "video/*");
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
-                    // Try VLC first
                     intent.setPackage("org.videolan.vlc");
 
                     PackageManager pm = getPackageManager();
@@ -63,7 +62,6 @@ public class MainActivity extends AppCompatActivity {
                     if (intent.resolveActivity(pm) != null) {
                         startActivity(intent);
                     } else {
-                        // Fallback to any video player
                         Intent fallback = new Intent(Intent.ACTION_VIEW);
                         fallback.setDataAndType(Uri.parse(url), "video/*");
                         fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -85,20 +83,42 @@ public class MainActivity extends AppCompatActivity {
                     String js =
                         "javascript:(function() {" +
 
-                        // Scroll slightly down
-                        "window.scrollTo(0, 150);" +
-
                         // Get all links
                         "var links = document.querySelectorAll('a');" +
 
-                        "for (var i = 0; i < links.length; i++) {" +
-                        "   var rect = links[i].getBoundingClientRect();" +
+                        "var fileLinks = [];" +
 
-                        // Only focus elements that are visually below header area
-                        "   if (rect.top > 120) {" +
-                        "       links[i].focus();" +
-                        "       break;" +
+                        "for (var i = 0; i < links.length; i++) {" +
+
+                        "   var href = links[i].getAttribute('href');" +
+
+                        "   if (!href) continue;" +
+
+                        // Ignore breadcrumb / parent directory links
+                        "   if (href === '../') continue;" +
+
+                        // Ignore top navigation links (usually short href)
+                        "   if (href.startsWith('#')) continue;" +
+
+                        // Only keep real directory or file links
+                        "   if (href.endsWith('/') || href.includes('.')) {" +
+                        "       fileLinks.push(links[i]);" +
                         "   }" +
+                        "}" +
+
+                        // Disable focus on all links first
+                        "for (var j = 0; j < links.length; j++) {" +
+                        "   links[j].setAttribute('tabindex', '-1');" +
+                        "}" +
+
+                        // Enable focus only for real file links
+                        "for (var k = 0; k < fileLinks.length; k++) {" +
+                        "   fileLinks[k].setAttribute('tabindex', '0');" +
+                        "}" +
+
+                        // Focus first real file link
+                        "if (fileLinks.length > 0) {" +
+                        "   fileLinks[0].focus();" +
                         "}" +
 
                         "})();";
