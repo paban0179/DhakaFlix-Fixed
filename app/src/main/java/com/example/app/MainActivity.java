@@ -13,19 +13,20 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // This must match your layout filename
         setContentView(R.layout.activity_main);
 
         myWebView = findViewById(R.id.webview);
-        WebSettings settings = myWebView.getSettings();
         
-        // --- Essential Features ---
+        // CRASH PROTECTION: If webview is missing from layout, stop here
+        if (myWebView == null) return;
+
+        WebSettings settings = myWebView.getSettings();
         settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true); // REQUIRED for search boxes to work
+        settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-        
-        // --- Browser Identity ---
-        // This stops the website from redirecting you away from the app
         settings.setUserAgentString("Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36");
 
         myWebView.setWebViewClient(new WebViewClient() {
@@ -37,20 +38,17 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onPageFinished(WebView view, String url) {
-                // HYBRID LOGIC: Only apply visual gallery if URL contains a year (like /2024/)
-                // This keeps your homepage "standard" and intact.
+                // Filter: Only transform links if inside a year folder
                 if (url.contains("/20")) {
                     injectGalleryStyle(view);
                 }
             }
         });
 
-        // LOAD DHAKAFLIX
         myWebView.loadUrl("https://your-dhakaflix-url.com");
     }
 
     private void injectGalleryStyle(WebView view) {
-        // This JavaScript targets only .mp4/mkv links to show an icon box
         String js = "javascript:(function() {" +
                 "var links = document.getElementsByTagName('a');" +
                 "for (var i = 0; i < links.length; i++) {" +
@@ -70,9 +68,7 @@ public class MainActivity extends AppCompatActivity {
                 "    img.style.width = '80px';" +
                 "    img.style.display = 'block';" +
                 "    img.style.margin = '0 auto 8px';" +
-                "    if (!link.querySelector('img')) {" +
-                "        link.insertBefore(img, link.firstChild);" +
-                "    }" +
+                "    if (!link.querySelector('img')) link.insertBefore(img, link.firstChild);" +
                 "  }" +
                 "}" +
                 "})()";
@@ -81,8 +77,8 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (myWebView.canGoBack()) {
-            myWebView.goBack(); // Back button stays in website
+        if (myWebView != null && myWebView.canGoBack()) {
+            myWebView.goBack();
         } else {
             super.onBackPressed();
         }
