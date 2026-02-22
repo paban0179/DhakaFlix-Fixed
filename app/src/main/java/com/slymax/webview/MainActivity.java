@@ -4,7 +4,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
+import android.view.KeyEvent;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -27,6 +27,7 @@ public class MainActivity extends AppCompatActivity {
 
         webView.setFocusable(true);
         webView.setFocusableInTouchMode(true);
+        webView.requestFocus();
 
         WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
@@ -54,7 +55,6 @@ public class MainActivity extends AppCompatActivity {
                     Intent intent = new Intent(Intent.ACTION_VIEW);
                     intent.setDataAndType(Uri.parse(url), "video/*");
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
                     intent.setPackage("org.videolan.vlc");
 
                     PackageManager pm = getPackageManager();
@@ -73,60 +73,6 @@ public class MainActivity extends AppCompatActivity {
 
                 return false;
             }
-
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                super.onPageFinished(view, url);
-
-                new Handler().postDelayed(() -> {
-
-                    String js =
-                        "javascript:(function() {" +
-
-                        // Get all links
-                        "var links = document.querySelectorAll('a');" +
-
-                        "var fileLinks = [];" +
-
-                        "for (var i = 0; i < links.length; i++) {" +
-
-                        "   var href = links[i].getAttribute('href');" +
-
-                        "   if (!href) continue;" +
-
-                        // Ignore breadcrumb / parent directory links
-                        "   if (href === '../') continue;" +
-
-                        // Ignore top navigation links (usually short href)
-                        "   if (href.startsWith('#')) continue;" +
-
-                        // Only keep real directory or file links
-                        "   if (href.endsWith('/') || href.includes('.')) {" +
-                        "       fileLinks.push(links[i]);" +
-                        "   }" +
-                        "}" +
-
-                        // Disable focus on all links first
-                        "for (var j = 0; j < links.length; j++) {" +
-                        "   links[j].setAttribute('tabindex', '-1');" +
-                        "}" +
-
-                        // Enable focus only for real file links
-                        "for (var k = 0; k < fileLinks.length; k++) {" +
-                        "   fileLinks[k].setAttribute('tabindex', '0');" +
-                        "}" +
-
-                        // Focus first real file link
-                        "if (fileLinks.length > 0) {" +
-                        "   fileLinks[0].focus();" +
-                        "}" +
-
-                        "})();";
-
-                    view.evaluateJavascript(js, null);
-
-                }, 400);
-            }
         });
 
         webView.loadUrl(HOME_URL);
@@ -142,5 +88,28 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 });
+    }
+
+    // 🔥 THIS FIXES TV DPAD NAVIGATION
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+
+            switch (event.getKeyCode()) {
+
+                case KeyEvent.KEYCODE_DPAD_UP:
+                case KeyEvent.KEYCODE_DPAD_DOWN:
+                case KeyEvent.KEYCODE_DPAD_LEFT:
+                case KeyEvent.KEYCODE_DPAD_RIGHT:
+                case KeyEvent.KEYCODE_DPAD_CENTER:
+                case KeyEvent.KEYCODE_ENTER:
+
+                    webView.dispatchKeyEvent(event);
+                    return true;
+            }
+        }
+
+        return super.dispatchKeyEvent(event);
     }
 }
