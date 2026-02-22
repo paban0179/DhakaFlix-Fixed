@@ -1,4 +1,3 @@
-// THIS BLOCK WAS MISSING - It tells Gradle this is an Android App
 plugins {
     id 'com.android.application'
 }
@@ -14,7 +13,6 @@ android {
         versionCode 2
         versionName "1.1"
 
-        // Fix for Android 15/16 security & 16KB page alignment
         packagingOptions {
             jniLibs {
                 useLegacyPackaging = false
