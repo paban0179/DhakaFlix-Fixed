@@ -4,8 +4,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.view.KeyEvent;
-import android.view.View;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -26,19 +24,21 @@ public class MainActivity extends AppCompatActivity {
         webView = new WebView(this);
         setContentView(webView);
 
-        // Make WebView TV-focusable
+        // Proper TV focus setup
         webView.setFocusable(true);
         webView.setFocusableInTouchMode(true);
-        webView.requestFocus();
 
         WebSettings webSettings = webView.getSettings();
 
         webSettings.setJavaScriptEnabled(true);
         webSettings.setDomStorageEnabled(true);
+
         webSettings.setBuiltInZoomControls(true);
         webSettings.setDisplayZoomControls(false);
+
         webSettings.setLoadWithOverviewMode(true);
         webSettings.setUseWideViewPort(true);
+
         webSettings.setMediaPlaybackRequiresUserGesture(false);
 
         webView.setWebChromeClient(new WebChromeClient());
@@ -76,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
 
         webView.loadUrl(HOME_URL);
 
-        // Proper back handling
+        // Proper Back handling
         getOnBackPressedDispatcher().addCallback(this,
                 new OnBackPressedCallback(true) {
                     @Override
@@ -88,28 +88,5 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 });
-    }
-
-    // DPAD key handling for TV
-    @Override
-    public boolean dispatchKeyEvent(KeyEvent event) {
-
-        if (event.getAction() == KeyEvent.ACTION_DOWN) {
-
-            switch (event.getKeyCode()) {
-
-                case KeyEvent.KEYCODE_DPAD_DOWN:
-                case KeyEvent.KEYCODE_DPAD_UP:
-                case KeyEvent.KEYCODE_DPAD_LEFT:
-                case KeyEvent.KEYCODE_DPAD_RIGHT:
-                case KeyEvent.KEYCODE_DPAD_CENTER:
-                case KeyEvent.KEYCODE_ENTER:
-
-                    webView.requestFocus();
-                    break;
-            }
-        }
-
-        return super.dispatchKeyEvent(event);
     }
 }
