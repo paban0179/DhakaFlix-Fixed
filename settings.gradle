@@ -6,6 +6,7 @@ pluginManagement {
     }
 }
 dependencyResolutionManagement {
+    // This line tells Gradle to use THESE repositories and ignore any in build.gradle
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
