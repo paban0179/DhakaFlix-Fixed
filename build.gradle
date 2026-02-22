@@ -4,7 +4,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        // The engine for Android builds
+        // This is compatible with Gradle 8.9
         classpath 'com.android.tools.build:gradle:8.7.0'
     }
 }
