@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -24,21 +25,16 @@ public class MainActivity extends AppCompatActivity {
         webView = new WebView(this);
         setContentView(webView);
 
-        // Proper TV focus setup
         webView.setFocusable(true);
         webView.setFocusableInTouchMode(true);
 
         WebSettings webSettings = webView.getSettings();
-
         webSettings.setJavaScriptEnabled(true);
         webSettings.setDomStorageEnabled(true);
-
         webSettings.setBuiltInZoomControls(true);
         webSettings.setDisplayZoomControls(false);
-
         webSettings.setLoadWithOverviewMode(true);
         webSettings.setUseWideViewPort(true);
-
         webSettings.setMediaPlaybackRequiresUserGesture(false);
 
         webView.setWebChromeClient(new WebChromeClient());
@@ -48,7 +44,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
 
-                // Redirect video files to VLC
                 if (url.endsWith(".mp4") ||
                     url.endsWith(".mkv") ||
                     url.endsWith(".m4v") ||
@@ -72,11 +67,42 @@ public class MainActivity extends AppCompatActivity {
 
                 return false;
             }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+
+                // Inject JavaScript to fix TV focus
+                new Handler().postDelayed(() -> {
+
+                    String js = "javascript:(function() { " +
+
+                            // Find all links
+                            "var links = document.querySelectorAll('a');" +
+
+                            // Skip header links (usually first few)
+                            "for (var i = 0; i < links.length; i++) {" +
+                            "   links[i].setAttribute('tabindex', '0');" +
+                            "}" +
+
+                            // Scroll slightly down to avoid header trap
+                            "window.scrollTo(0, 200);" +
+
+                            // Focus first real file link (skip first few header links)
+                            "if (links.length > 5) {" +
+                            "   links[5].focus();" +
+                            "}" +
+
+                            "})();";
+
+                    view.evaluateJavascript(js, null);
+
+                }, 300);
+            }
         });
 
         webView.loadUrl(HOME_URL);
 
-        // Proper Back handling
         getOnBackPressedDispatcher().addCallback(this,
                 new OnBackPressedCallback(true) {
                     @Override
