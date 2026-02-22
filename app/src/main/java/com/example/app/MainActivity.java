@@ -14,7 +14,7 @@ public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
     private static final String BASE_URL =
-            "http://172.16.50.7/DHAKA-FLIX-7/English%20Movies/";
+            "http://172.16.50.7/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
