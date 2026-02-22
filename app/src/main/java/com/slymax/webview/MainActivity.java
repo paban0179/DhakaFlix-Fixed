@@ -23,11 +23,14 @@ public class MainActivity extends AppCompatActivity {
     private WebView webView;
     private View cursorView;
 
-    private float cursorX = 300;
-    private float cursorY = 300;
+    private float cursorX = 300f;
+    private float cursorY = 300f;
 
-    private final int MOVE_STEP = 40;
+    private final float MOVE_STEP = 14f;
     private final int CURSOR_SIZE = 36;
+
+    private final int EDGE_MARGIN = 80;
+    private final int SCROLL_AMOUNT = 120;
 
     private Handler handler = new Handler();
     private Runnable hideCursorRunnable;
@@ -50,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
         setupWebView();
         setupCursorAutoHide();
 
-        // 🔥 IMPORTANT: prevent WebView from stealing focus
+        // Prevent WebView focus stealing
         webView.setFocusable(false);
         webView.setFocusableInTouchMode(false);
 
@@ -64,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
         GradientDrawable circle = new GradientDrawable();
         circle.setShape(GradientDrawable.OVAL);
         circle.setColor(Color.parseColor("#CCFFFFFF"));
-        circle.setStroke(3, Color.BLACK);
+        circle.setStroke(2, Color.BLACK);
 
         cursorView.setBackground(circle);
 
@@ -81,8 +84,6 @@ public class MainActivity extends AppCompatActivity {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
-        settings.setBuiltInZoomControls(false);
-        settings.setDisplayZoomControls(false);
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
@@ -132,7 +133,7 @@ public class MainActivity extends AppCompatActivity {
     private void showCursor() {
         cursorView.setVisibility(View.VISIBLE);
         handler.removeCallbacks(hideCursorRunnable);
-        handler.postDelayed(hideCursorRunnable, 3000);
+        handler.postDelayed(hideCursorRunnable, 4000);
     }
 
     private void updateCursorPosition() {
@@ -147,6 +148,19 @@ public class MainActivity extends AppCompatActivity {
 
         cursorView.setX(cursorX);
         cursorView.setY(cursorY);
+
+        handleEdgeScroll();
+    }
+
+    private void handleEdgeScroll() {
+
+        if (cursorY > webView.getHeight() - EDGE_MARGIN) {
+            webView.scrollBy(0, SCROLL_AMOUNT);
+        }
+
+        if (cursorY < EDGE_MARGIN) {
+            webView.scrollBy(0, -SCROLL_AMOUNT);
+        }
     }
 
     @Override
@@ -193,7 +207,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void handleBack() {
-
         if (webView.canGoBack()) {
             webView.goBack();
         } else {
@@ -203,9 +216,17 @@ public class MainActivity extends AppCompatActivity {
 
     private void simulateClick() {
 
+        float scale = webView.getScale();
+
+        float scrollX = webView.getScrollX();
+        float scrollY = webView.getScrollY();
+
+        float adjustedX = (cursorX + scrollX) / scale;
+        float adjustedY = (cursorY + scrollY) / scale;
+
         String js = "javascript:(function() {" +
                 "var el = document.elementFromPoint(" +
-                cursorX + "," + cursorY + ");" +
+                adjustedX + "," + adjustedY + ");" +
                 "if(el){ el.click(); }" +
                 "})()";
 
