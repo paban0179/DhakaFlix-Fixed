@@ -1,6 +1,10 @@
+// THIS BLOCK WAS MISSING - It tells Gradle this is an Android App
+plugins {
+    id 'com.android.application'
+}
+
 android {
     namespace 'com.slymax.webview'
-    // 2026 standard is SDK 35
     compileSdk 35
 
     defaultConfig {
@@ -10,8 +14,7 @@ android {
         versionCode 2
         versionName "1.1"
 
-        // This is the "Magic Fix" for 2026 compatibility
-        // It tells Android to stop using old, insecure native library packaging
+        // Fix for Android 15/16 security & 16KB page alignment
         packagingOptions {
             jniLibs {
                 useLegacyPackaging = false
@@ -25,7 +28,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true // Enable to meet modern security standards
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -34,4 +37,10 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
 }
