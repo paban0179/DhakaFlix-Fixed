@@ -44,21 +44,29 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
 
-                if (url.endsWith(".mp4") ||
-                    url.endsWith(".mkv") ||
-                    url.endsWith(".m4v") ||
-                    url.endsWith(".avi")) {
+                String lowerUrl = url.toLowerCase();
+
+                if (lowerUrl.endsWith(".mp4") ||
+                    lowerUrl.endsWith(".mkv") ||
+                    lowerUrl.endsWith(".m4v") ||
+                    lowerUrl.endsWith(".avi")) {
 
                     Intent intent = new Intent(Intent.ACTION_VIEW);
                     intent.setDataAndType(Uri.parse(url), "video/*");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+                    // Try VLC first
                     intent.setPackage("org.videolan.vlc");
 
                     PackageManager pm = getPackageManager();
+
                     if (intent.resolveActivity(pm) != null) {
                         startActivity(intent);
                     } else {
+                        // Fallback to any video player
                         Intent fallback = new Intent(Intent.ACTION_VIEW);
                         fallback.setDataAndType(Uri.parse(url), "video/*");
+                        fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         startActivity(fallback);
                     }
 
@@ -72,32 +80,32 @@ public class MainActivity extends AppCompatActivity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
 
-                // Inject JavaScript to fix TV focus
                 new Handler().postDelayed(() -> {
 
-                    String js = "javascript:(function() { " +
+                    String js =
+                        "javascript:(function() {" +
 
-                            // Find all links
-                            "var links = document.querySelectorAll('a');" +
+                        // Scroll slightly down
+                        "window.scrollTo(0, 150);" +
 
-                            // Skip header links (usually first few)
-                            "for (var i = 0; i < links.length; i++) {" +
-                            "   links[i].setAttribute('tabindex', '0');" +
-                            "}" +
+                        // Get all links
+                        "var links = document.querySelectorAll('a');" +
 
-                            // Scroll slightly down to avoid header trap
-                            "window.scrollTo(0, 200);" +
+                        "for (var i = 0; i < links.length; i++) {" +
+                        "   var rect = links[i].getBoundingClientRect();" +
 
-                            // Focus first real file link (skip first few header links)
-                            "if (links.length > 5) {" +
-                            "   links[5].focus();" +
-                            "}" +
+                        // Only focus elements that are visually below header area
+                        "   if (rect.top > 120) {" +
+                        "       links[i].focus();" +
+                        "       break;" +
+                        "   }" +
+                        "}" +
 
-                            "})();";
+                        "})();";
 
                     view.evaluateJavascript(js, null);
 
-                }, 300);
+                }, 400);
             }
         });
 
