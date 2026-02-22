@@ -23,15 +23,11 @@ public class MainActivity extends AppCompatActivity {
     private WebView webView;
     private View cursorView;
 
-    private float cursorX = 400;
-    private float cursorY = 400;
+    private float cursorX = 300;
+    private float cursorY = 300;
 
-    private int baseMoveStep = 30;
-    private int accelerationStep = 0;
-
-    private final int CURSOR_SIZE = 40;
-    private final int EDGE_SCROLL_MARGIN = 120;
-    private final int EDGE_SCROLL_AMOUNT = 150;
+    private final int MOVE_STEP = 40;
+    private final int CURSOR_SIZE = 36;
 
     private Handler handler = new Handler();
     private Runnable hideCursorRunnable;
@@ -42,27 +38,32 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        FrameLayout rootLayout = new FrameLayout(this);
+        FrameLayout root = new FrameLayout(this);
 
         webView = new WebView(this);
-        rootLayout.addView(webView);
+        root.addView(webView);
 
-        createCursor(rootLayout);
+        createCursor(root);
 
-        setContentView(rootLayout);
+        setContentView(root);
 
         setupWebView();
-        updateCursorPosition();
         setupCursorAutoHide();
+
+        // 🔥 IMPORTANT: prevent WebView from stealing focus
+        webView.setFocusable(false);
+        webView.setFocusableInTouchMode(false);
+
+        updateCursorPosition();
     }
 
-    private void createCursor(FrameLayout rootLayout) {
+    private void createCursor(FrameLayout root) {
 
         cursorView = new View(this);
 
         GradientDrawable circle = new GradientDrawable();
         circle.setShape(GradientDrawable.OVAL);
-        circle.setColor(Color.parseColor("#AAFFFFFF"));
+        circle.setColor(Color.parseColor("#CCFFFFFF"));
         circle.setStroke(3, Color.BLACK);
 
         cursorView.setBackground(circle);
@@ -72,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
         params.gravity = Gravity.TOP | Gravity.LEFT;
         cursorView.setLayoutParams(params);
 
-        rootLayout.addView(cursorView);
+        root.addView(cursorView);
     }
 
     private void setupWebView() {
@@ -80,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
-        settings.setBuiltInZoomControls(true);
+        settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
@@ -89,6 +90,7 @@ public class MainActivity extends AppCompatActivity {
         webView.setWebChromeClient(new WebChromeClient());
 
         webView.setWebViewClient(new WebViewClient() {
+
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
 
@@ -124,15 +126,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupCursorAutoHide() {
-
         hideCursorRunnable = () -> cursorView.setVisibility(View.INVISIBLE);
     }
 
     private void showCursor() {
-
         cursorView.setVisibility(View.VISIBLE);
         handler.removeCallbacks(hideCursorRunnable);
-        handler.postDelayed(hideCursorRunnable, 3000); // hide after 3 sec
+        handler.postDelayed(hideCursorRunnable, 3000);
     }
 
     private void updateCursorPosition() {
@@ -147,61 +147,58 @@ public class MainActivity extends AppCompatActivity {
 
         cursorView.setX(cursorX);
         cursorView.setY(cursorY);
-
-        handleEdgeScrolling();
-    }
-
-    private void handleEdgeScrolling() {
-
-        if (cursorY > webView.getHeight() - EDGE_SCROLL_MARGIN) {
-            webView.scrollBy(0, EDGE_SCROLL_AMOUNT);
-        }
-
-        if (cursorY < EDGE_SCROLL_MARGIN) {
-            webView.scrollBy(0, -EDGE_SCROLL_AMOUNT);
-        }
     }
 
     @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
+    public boolean dispatchKeyEvent(KeyEvent event) {
 
-        showCursor();
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
 
-        accelerationStep += 5;
-        int moveAmount = baseMoveStep + accelerationStep;
+            showCursor();
 
-        switch (keyCode) {
+            switch (event.getKeyCode()) {
 
-            case KeyEvent.KEYCODE_DPAD_UP:
-                cursorY -= moveAmount;
-                break;
+                case KeyEvent.KEYCODE_DPAD_UP:
+                    cursorY -= MOVE_STEP;
+                    updateCursorPosition();
+                    return true;
 
-            case KeyEvent.KEYCODE_DPAD_DOWN:
-                cursorY += moveAmount;
-                break;
+                case KeyEvent.KEYCODE_DPAD_DOWN:
+                    cursorY += MOVE_STEP;
+                    updateCursorPosition();
+                    return true;
 
-            case KeyEvent.KEYCODE_DPAD_LEFT:
-                cursorX -= moveAmount;
-                break;
+                case KeyEvent.KEYCODE_DPAD_LEFT:
+                    cursorX -= MOVE_STEP;
+                    updateCursorPosition();
+                    return true;
 
-            case KeyEvent.KEYCODE_DPAD_RIGHT:
-                cursorX += moveAmount;
-                break;
+                case KeyEvent.KEYCODE_DPAD_RIGHT:
+                    cursorX += MOVE_STEP;
+                    updateCursorPosition();
+                    return true;
 
-            case KeyEvent.KEYCODE_DPAD_CENTER:
-            case KeyEvent.KEYCODE_ENTER:
-                simulateClick();
-                return true;
+                case KeyEvent.KEYCODE_DPAD_CENTER:
+                case KeyEvent.KEYCODE_ENTER:
+                    simulateClick();
+                    return true;
+
+                case KeyEvent.KEYCODE_BACK:
+                    handleBack();
+                    return true;
+            }
         }
 
-        updateCursorPosition();
-        return true;
+        return super.dispatchKeyEvent(event);
     }
 
-    @Override
-    public boolean onKeyUp(int keyCode, KeyEvent event) {
-        accelerationStep = 0;
-        return super.onKeyUp(keyCode, event);
+    private void handleBack() {
+
+        if (webView.canGoBack()) {
+            webView.goBack();
+        } else {
+            finish();
+        }
     }
 
     private void simulateClick() {
