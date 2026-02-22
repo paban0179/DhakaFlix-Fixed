@@ -116,6 +116,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        webView.loadUrl("http://172.16.50.4/");
+        webView.loadUrl("http://172.16.50.7/");
     }
 }
