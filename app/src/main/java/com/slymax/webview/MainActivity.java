@@ -26,7 +26,9 @@ public class MainActivity extends AppCompatActivity {
     private float cursorX = 300f;
     private float cursorY = 300f;
 
-    private final float MOVE_STEP = 14f;
+    // 50% faster than 14
+    private final float MOVE_STEP = 21f;
+
     private final int CURSOR_SIZE = 36;
 
     private final int EDGE_MARGIN = 80;
@@ -53,7 +55,6 @@ public class MainActivity extends AppCompatActivity {
         setupWebView();
         setupCursorAutoHide();
 
-        // Prevent WebView focus stealing
         webView.setFocusable(false);
         webView.setFocusableInTouchMode(false);
 
@@ -84,8 +85,8 @@ public class MainActivity extends AppCompatActivity {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
-        settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
+        settings.setLoadWithOverviewMode(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
 
         webView.setWebChromeClient(new WebChromeClient());
@@ -216,18 +217,15 @@ public class MainActivity extends AppCompatActivity {
 
     private void simulateClick() {
 
-        float scale = webView.getScale();
-
-        float scrollX = webView.getScrollX();
-        float scrollY = webView.getScrollY();
-
-        float adjustedX = (cursorX + scrollX) / scale;
-        float adjustedY = (cursorY + scrollY) / scale;
+        float clickX = cursorX + (CURSOR_SIZE / 2f);
+        float clickY = cursorY + (CURSOR_SIZE / 2f);
 
         String js = "javascript:(function() {" +
                 "var el = document.elementFromPoint(" +
-                adjustedX + "," + adjustedY + ");" +
-                "if(el){ el.click(); }" +
+                clickX + "," + clickY + ");" +
+                "if(el){" +
+                "  el.dispatchEvent(new MouseEvent('click', {bubbles:true}));" +
+                "}" +
                 "})()";
 
         webView.evaluateJavascript(js, null);
