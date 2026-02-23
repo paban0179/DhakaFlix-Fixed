@@ -28,8 +28,6 @@ public class MainActivity extends AppCompatActivity {
         webView.getSettings().setDomStorageEnabled(true);
         webView.getSettings().setUseWideViewPort(true);
         webView.getSettings().setLoadWithOverviewMode(true);
-        webView.getSettings().setAllowFileAccess(true);
-        webView.getSettings().setAllowContentAccess(true);
 
         webView.setWebViewClient(new WebViewClient() {
 
@@ -59,90 +57,81 @@ public class MainActivity extends AppCompatActivity {
 
     private void injectGalleryScript() {
 
-        String js = "(function() {"
+        String js =
+                "(function() {" +
 
-                + "let list = document.querySelector('#items');"
-                + "if(!list) return;"
+                "let list = document.querySelector('#items');" +
+                "if(!list) return;" +
 
-                + "let folders = document.querySelectorAll('#items li.item.folder');"
-                + "if(folders.length === 0) return;"
+                "let folders = document.querySelectorAll('#items li.item.folder');" +
+                "if(folders.length === 0) return;" +
 
-                + "list.style.display='none';"
+                // turn list into grid
+                "list.style.display='grid';" +
+                "list.style.gridTemplateColumns='repeat(auto-fill, minmax(160px,1fr))';" +
+                "list.style.gap='20px';" +
+                "list.style.padding='20px';" +
+                "list.style.listStyle='none';" +
 
-                + "let gallery = document.createElement('div');"
-                + "gallery.style.display='grid';"
-                + "gallery.style.gridTemplateColumns='repeat(auto-fill, minmax(220px,1fr))';"
-                + "gallery.style.gap='24px';"
-                + "gallery.style.padding='30px';"
-                + "gallery.style.background='#111';"
-                + "gallery.style.minHeight='100vh';"
+                "folders.forEach(function(folder) {" +
 
-                + "folders.forEach(function(folder){"
+                "let link = folder.querySelector('a');" +
+                "if(!link) return;" +
 
-                + "let link = folder.querySelector('a');"
-                + "if(!link) return;"
+                "let folderUrl = link.href;" +
+                "let folderName = link.innerText;" +
 
-                + "let folderUrl = link.href;"
+                "folder.style.background='none';" +
+                "folder.style.border='none';" +
+                "folder.style.textAlign='center';" +
 
-                + "let card = document.createElement('div');"
-                + "card.style.textAlign='center';"
-                + "card.style.color='white';"
-                + "card.style.cursor='pointer';"
-                + "card.style.outline='none';"
-                + "card.setAttribute('tabindex','0');"
+                // remove original content
+                "folder.innerHTML='';" +
 
-                + "let img = document.createElement('img');"
-                + "img.style.width='100%';"
-                + "img.style.height='330px';"
-                + "img.style.objectFit='cover';"
-                + "img.style.borderRadius='12px';"
-                + "img.style.boxShadow='0 6px 16px rgba(0,0,0,0.6)';"
-                + "img.style.background='#222';"
+                "let img = document.createElement('img');" +
+                "img.style.width='100%';" +
+                "img.style.height='240px';" +
+                "img.style.objectFit='cover';" +
+                "img.style.borderRadius='10px';" +
+                "img.style.background='#222';" +
 
-                // Placeholder
-                + "let placeholder = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent("
-                + "'<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"300\" height=\"450\">"
-                + "<rect width=\"100%\" height=\"100%\" fill=\"#222\"/>"
-                + "<text x=\"50%\" y=\"50%\" dominant-baseline=\"middle\" text-anchor=\"middle\" fill=\"#666\" font-size=\"20\">No Poster</text>"
-                + "</svg>'"
-                + ");"
+                // Try loading default jpg guess
+                "img.src = folderUrl + folderName + '.jpg';" +
 
-                + "img.src = placeholder;"
+                // fallback if fails
+                "img.onerror = function() {" +
+                "this.onerror=null;" +
+                "this.src='data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(" +
+                "'<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"300\" height=\"450\">" +
+                "<rect width=\"100%\" height=\"100%\" fill=\"#222\"/>" +
+                "<text x=\"50%\" y=\"50%\" dominant-baseline=\"middle\" text-anchor=\"middle\" fill=\"#666\" font-size=\"18\">No Poster</text>" +
+                "</svg>');" +
+                "};" +
 
-                // Fetch folder HTML to find .jpg
-                + "fetch(folderUrl)"
-                + ".then(r => r.text())"
-                + ".then(html => {"
-                + "let match = html.match(/href=\\\"([^\\\"]+\\.jpg)\\\"/i);"
-                + "if(match){"
-                + "img.src = folderUrl + match[1];"
-                + "}"
-                + "})"
-                + ".catch(()=>{});"
+                "let title = document.createElement('div');" +
+                "title.innerText = folderName;" +
+                "title.style.color='white';" +
+                "title.style.fontSize='14px';" +
+                "title.style.marginTop='8px';" +
 
-                + "let title = document.createElement('div');"
-                + "title.innerText = link.innerText;"
-                + "title.style.marginTop='12px';"
-                + "title.style.fontSize='16px';"
+                "folder.appendChild(img);" +
+                "folder.appendChild(title);" +
 
-                + "card.appendChild(img);"
-                + "card.appendChild(title);"
+                "folder.setAttribute('tabindex','0');" +
 
-                + "card.addEventListener('click', function(){"
-                + "window.location.href = folderUrl;"
-                + "});"
+                "folder.addEventListener('click', function() {" +
+                "window.location.href = folderUrl;" +
+                "});" +
 
-                + "card.addEventListener('keydown', function(e){"
-                + "if(e.key === 'Enter'){ window.location.href = folderUrl; }"
-                + "});"
+                "folder.addEventListener('keydown', function(e) {" +
+                "if(e.key==='Enter'){ window.location.href = folderUrl; }" +
+                "});" +
 
-                + "gallery.appendChild(card);"
+                "});" +
 
-                + "});"
+                "document.body.style.background='#111';" +
 
-                + "document.body.appendChild(gallery);"
-
-                + "})();";
+                "})();";
 
         webView.evaluateJavascript(js, null);
     }
