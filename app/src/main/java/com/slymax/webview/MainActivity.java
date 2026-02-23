@@ -1,233 +1,137 @@
 package com.slymax.webview;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.graphics.Color;
-import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
-import android.view.Gravity;
 import android.view.KeyEvent;
-import android.view.View;
-import android.webkit.WebChromeClient;
-import android.webkit.WebSettings;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.FrameLayout;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
-    private View cursorView;
+    private final String HOME_URL = "http://172.16.50.4/";
 
-    private float cursorX = 300f;
-    private float cursorY = 300f;
-
-    // 50% faster than 14
-    private final float MOVE_STEP = 21f;
-
-    private final int CURSOR_SIZE = 36;
-
-    private final int EDGE_MARGIN = 80;
-    private final int SCROLL_AMOUNT = 120;
-
-    private Handler handler = new Handler();
-    private Runnable hideCursorRunnable;
-
-    private static final String HOME_URL = "http://172.16.50.4/";
-
+    @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        FrameLayout root = new FrameLayout(this);
-
         webView = new WebView(this);
-        root.addView(webView);
+        setContentView(webView);
 
-        createCursor(root);
-
-        setContentView(root);
-
-        setupWebView();
-        setupCursorAutoHide();
-
-        webView.setFocusable(false);
-        webView.setFocusableInTouchMode(false);
-
-        updateCursorPosition();
-    }
-
-    private void createCursor(FrameLayout root) {
-
-        cursorView = new View(this);
-
-        GradientDrawable circle = new GradientDrawable();
-        circle.setShape(GradientDrawable.OVAL);
-        circle.setColor(Color.parseColor("#CCFFFFFF"));
-        circle.setStroke(2, Color.BLACK);
-
-        cursorView.setBackground(circle);
-
-        FrameLayout.LayoutParams params =
-                new FrameLayout.LayoutParams(CURSOR_SIZE, CURSOR_SIZE);
-        params.gravity = Gravity.TOP | Gravity.LEFT;
-        cursorView.setLayoutParams(params);
-
-        root.addView(cursorView);
-    }
-
-    private void setupWebView() {
-
-        WebSettings settings = webView.getSettings();
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setUseWideViewPort(true);
-        settings.setLoadWithOverviewMode(true);
-        settings.setMediaPlaybackRequiresUserGesture(false);
-
-        webView.setWebChromeClient(new WebChromeClient());
+        webView.getSettings().setJavaScriptEnabled(true);
+        webView.getSettings().setDomStorageEnabled(true);
+        webView.getSettings().setUseWideViewPort(true);
+        webView.getSettings().setLoadWithOverviewMode(true);
 
         webView.setWebViewClient(new WebViewClient() {
 
             @Override
-            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                String url = request.getUrl().toString();
 
-                String lower = url.toLowerCase();
-
-                if (lower.endsWith(".mp4") ||
-                        lower.endsWith(".mkv") ||
-                        lower.endsWith(".m4v") ||
-                        lower.endsWith(".avi")) {
-
+                if (url.endsWith(".mp4") || url.endsWith(".mkv") || url.endsWith(".m4v")) {
                     Intent intent = new Intent(Intent.ACTION_VIEW);
                     intent.setDataAndType(Uri.parse(url), "video/*");
                     intent.setPackage("org.videolan.vlc");
-
-                    PackageManager pm = getPackageManager();
-
-                    if (intent.resolveActivity(pm) != null) {
-                        startActivity(intent);
-                    } else {
-                        Intent fallback = new Intent(Intent.ACTION_VIEW);
-                        fallback.setDataAndType(Uri.parse(url), "video/*");
-                        startActivity(fallback);
-                    }
-
+                    startActivity(intent);
                     return true;
                 }
 
                 return false;
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                injectGalleryScript();
             }
         });
 
         webView.loadUrl(HOME_URL);
     }
 
-    private void setupCursorAutoHide() {
-        hideCursorRunnable = () -> cursorView.setVisibility(View.INVISIBLE);
-    }
+    private void injectGalleryScript() {
 
-    private void showCursor() {
-        cursorView.setVisibility(View.VISIBLE);
-        handler.removeCallbacks(hideCursorRunnable);
-        handler.postDelayed(hideCursorRunnable, 4000);
-    }
+        String js = "(function() {"
 
-    private void updateCursorPosition() {
+                + "let list = document.querySelector('#items');"
+                + "if(!list) return;"
 
-        int maxX = webView.getWidth() - CURSOR_SIZE;
-        int maxY = webView.getHeight() - CURSOR_SIZE;
+                + "let folders = document.querySelectorAll('#items li.item.folder');"
+                + "if(folders.length === 0) return;"
 
-        if (cursorX < 0) cursorX = 0;
-        if (cursorY < 0) cursorY = 0;
-        if (cursorX > maxX) cursorX = maxX;
-        if (cursorY > maxY) cursorY = maxY;
+                + "list.style.display='none';"
 
-        cursorView.setX(cursorX);
-        cursorView.setY(cursorY);
+                + "let gallery = document.createElement('div');"
+                + "gallery.style.display='grid';"
+                + "gallery.style.gridTemplateColumns='repeat(auto-fill, minmax(220px,1fr))';"
+                + "gallery.style.gap='20px';"
+                + "gallery.style.padding='20px';"
+                + "gallery.style.background='#111';"
 
-        handleEdgeScroll();
-    }
+                + "folders.forEach(function(folder){"
 
-    private void handleEdgeScroll() {
+                + "let link = folder.querySelector('a');"
+                + "if(!link) return;"
 
-        if (cursorY > webView.getHeight() - EDGE_MARGIN) {
-            webView.scrollBy(0, SCROLL_AMOUNT);
-        }
+                + "let folderUrl = link.href;"
+                + "let posterUrl = folderUrl + 'a_AL_.jpg';"
 
-        if (cursorY < EDGE_MARGIN) {
-            webView.scrollBy(0, -SCROLL_AMOUNT);
-        }
+                + "let card = document.createElement('div');"
+                + "card.style.textAlign='center';"
+                + "card.style.color='white';"
+                + "card.style.cursor='pointer';"
+                + "card.style.outline='none';"
+                + "card.setAttribute('tabindex','0');"
+
+                + "let img = document.createElement('img');"
+                + "img.src = posterUrl;"
+                + "img.style.width='100%';"
+                + "img.style.borderRadius='10px';"
+                + "img.style.boxShadow='0 4px 10px rgba(0,0,0,0.6)';"
+
+                + "let title = document.createElement('div');"
+                + "title.innerText = link.innerText;"
+                + "title.style.marginTop='10px';"
+                + "title.style.fontSize='16px';"
+
+                + "card.appendChild(img);"
+                + "card.appendChild(title);"
+
+                + "card.addEventListener('click', function(){"
+                + "window.location.href = folderUrl;"
+                + "});"
+
+                + "card.addEventListener('keydown', function(e){"
+                + "if(e.key === 'Enter'){ window.location.href = folderUrl; }"
+                + "});"
+
+                + "gallery.appendChild(card);"
+
+                + "});"
+
+                + "document.body.appendChild(gallery);"
+
+                + "})();";
+
+        webView.evaluateJavascript(js, null);
     }
 
     @Override
-    public boolean dispatchKeyEvent(KeyEvent event) {
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
 
-        if (event.getAction() == KeyEvent.ACTION_DOWN) {
-
-            showCursor();
-
-            switch (event.getKeyCode()) {
-
-                case KeyEvent.KEYCODE_DPAD_UP:
-                    cursorY -= MOVE_STEP;
-                    updateCursorPosition();
-                    return true;
-
-                case KeyEvent.KEYCODE_DPAD_DOWN:
-                    cursorY += MOVE_STEP;
-                    updateCursorPosition();
-                    return true;
-
-                case KeyEvent.KEYCODE_DPAD_LEFT:
-                    cursorX -= MOVE_STEP;
-                    updateCursorPosition();
-                    return true;
-
-                case KeyEvent.KEYCODE_DPAD_RIGHT:
-                    cursorX += MOVE_STEP;
-                    updateCursorPosition();
-                    return true;
-
-                case KeyEvent.KEYCODE_DPAD_CENTER:
-                case KeyEvent.KEYCODE_ENTER:
-                    simulateClick();
-                    return true;
-
-                case KeyEvent.KEYCODE_BACK:
-                    handleBack();
-                    return true;
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if (webView.canGoBack()) {
+                webView.goBack();
+                return true;
             }
         }
 
-        return super.dispatchKeyEvent(event);
-    }
-
-    private void handleBack() {
-        if (webView.canGoBack()) {
-            webView.goBack();
-        } else {
-            finish();
-        }
-    }
-
-    private void simulateClick() {
-
-        float clickX = cursorX + (CURSOR_SIZE / 2f);
-        float clickY = cursorY + (CURSOR_SIZE / 2f);
-
-        String js = "javascript:(function() {" +
-                "var el = document.elementFromPoint(" +
-                clickX + "," + clickY + ");" +
-                "if(el){" +
-                "  el.dispatchEvent(new MouseEvent('click', {bubbles:true}));" +
-                "}" +
-                "})()";
-
-        webView.evaluateJavascript(js, null);
+        return super.onKeyDown(keyCode, event);
     }
 }
