@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
     private void injectGalleryScript() {
 
         String js =
-        "(function() {" +
+        "(async function() {" +
 
         "let list = document.querySelector('#items');" +
         "if(!list) return;" +
@@ -66,17 +66,36 @@ public class MainActivity extends AppCompatActivity {
         "let folders = document.querySelectorAll('#items li.item.folder');" +
         "if(folders.length === 0) return;" +
 
-        // Turn into grid but KEEP scrolling container
+        // Check if this level is movie level
+        "let movieLevel = false;" +
+
+        "for (let folder of folders) {" +
+        "let link = folder.querySelector('a');" +
+        "if(!link) continue;" +
+
+        "try {" +
+        "let res = await fetch(link.href);" +
+        "let html = await res.text();" +
+        "if(html.match(/\\.mp4|\\.mkv|\\.m4v/i)) {" +
+        "movieLevel = true;" +
+        "break;" +
+        "}" +
+        "} catch(e) {}" +
+        "}" +
+
+        "if(!movieLevel) return;" +   // STOP if not movie level
+
+        // Transform into grid
         "list.style.display='grid';" +
         "list.style.gridTemplateColumns='repeat(auto-fill,minmax(160px,1fr))';" +
         "list.style.gap='18px';" +
         "list.style.padding='20px';" +
         "list.style.listStyle='none';" +
 
-        "folders.forEach(function(folder) {" +
+        "for (let folder of folders) {" +
 
         "let link = folder.querySelector('a');" +
-        "if(!link) return;" +
+        "if(!link) continue;" +
 
         "let folderUrl = link.href;" +
         "let folderName = link.innerText;" +
@@ -98,34 +117,32 @@ public class MainActivity extends AppCompatActivity {
         "<text x=\"50%\" y=\"50%\" dominant-baseline=\"middle\" text-anchor=\"middle\" fill=\"#666\" font-size=\"18\">Loading...</text>" +
         "</svg>');" +
 
-        // Fetch folder HTML safely
-        "fetch(folderUrl)" +
-        ".then(r=>r.text())" +
-        ".then(html=>{" +
-        "let parser=new DOMParser();" +
-        "let doc=parser.parseFromString(html,'text/html');" +
-        "let jpg=doc.querySelector('a[href$=\".jpg\"],a[href$=\".JPG\"]');" +
-        "if(jpg){" +
-        "img.src=folderUrl + jpg.getAttribute('href');" +
-        "}else{" +
+        // Fetch folder to get jpg
+        "try {" +
+        "let res = await fetch(folderUrl);" +
+        "let html = await res.text();" +
+        "let parser = new DOMParser();" +
+        "let doc = parser.parseFromString(html,'text/html');" +
+        "let jpg = doc.querySelector('a[href$=\".jpg\"],a[href$=\".JPG\"]');" +
+        "if(jpg) {" +
+        "img.src = folderUrl + jpg.getAttribute('href');" +
+        "} else {" +
         "img.src='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(" +
         "'<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"300\" height=\"450\">" +
         "<rect width=\"100%\" height=\"100%\" fill=\"#222\"/>" +
         "<text x=\"50%\" y=\"50%\" dominant-baseline=\"middle\" text-anchor=\"middle\" fill=\"#666\" font-size=\"18\">No Poster</text>" +
         "</svg>');" +
         "}" +
-        "})" +
-        ".catch(()=>{});" +
+        "} catch(e) {}" +
 
-        "let title=document.createElement('div');" +
-        "title.innerText=folderName;" +
+        "let title = document.createElement('div');" +
+        "title.innerText = folderName;" +
         "title.style.color='white';" +
         "title.style.marginTop='8px';" +
         "title.style.fontSize='14px';" +
 
         "folder.appendChild(img);" +
         "folder.appendChild(title);" +
-
         "folder.setAttribute('tabindex','0');" +
 
         "folder.addEventListener('click',function(){" +
@@ -136,7 +153,7 @@ public class MainActivity extends AppCompatActivity {
         "if(e.key==='Enter'){window.location.href=folderUrl;}" +
         "});" +
 
-        "});" +
+        "}" +
 
         "document.body.style.background='#111';" +
 
