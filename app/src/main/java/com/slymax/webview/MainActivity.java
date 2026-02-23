@@ -26,8 +26,6 @@ public class MainActivity extends AppCompatActivity {
 
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setDomStorageEnabled(true);
-        webView.getSettings().setUseWideViewPort(true);
-        webView.getSettings().setLoadWithOverviewMode(true);
 
         webView.setWebViewClient(new WebViewClient() {
 
@@ -48,62 +46,46 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onPageFinished(WebView view, String url) {
-                injectGalleryScript();
+                injectGalleryScript(url);
             }
         });
 
         webView.loadUrl(HOME_URL);
     }
 
-    private void injectGalleryScript() {
+    private void injectGalleryScript(String currentUrl) {
+
+        // ONLY activate if URL ends with a 4-digit year
+        if (!currentUrl.matches(".*/\\d{4}/?$")) {
+            return;
+        }
 
         String js =
-        "(async function waitForList() {" +
+        "(function() {" +
 
         "let list = document.querySelector('#items');" +
+        "if(!list) return;" +
+
         "let folders = document.querySelectorAll('#items li.item.folder');" +
+        "if(folders.length === 0) return;" +
 
-        "if(!list || folders.length === 0) {" +
-        "setTimeout(waitForList, 300);" +
-        "return;" +
-        "}" +
+        // White background
+        "document.body.style.background = '#ffffff';" +
 
-        // Detect movie-level page: folders that contain video files
-        "let isMovieLevel = false;" +
-
-        "for (let folder of folders) {" +
-        "let link = folder.querySelector('a');" +
-        "if(!link) continue;" +
-        "try {" +
-        "let res = await fetch(link.href);" +
-        "let html = await res.text();" +
-        "if(html.match(/\\.mp4|\\.mkv|\\.m4v/i)) {" +
-        "isMovieLevel = true;" +
-        "break;" +
-        "}" +
-        "} catch(e) {}" +
-        "}" +
-
-        "if(!isMovieLevel) return;" +
-
-        // Convert to vertical poster grid
+        // Proper responsive grid (2-3 posters per row)
         "list.style.display='grid';" +
-        "list.style.gridTemplateColumns='repeat(auto-fill,minmax(180px,1fr))';" +
-        "list.style.gap='24px';" +
-        "list.style.padding='24px';" +
+        "list.style.gridTemplateColumns='repeat(auto-fill, minmax(180px, 1fr))';" +
+        "list.style.gap='20px';" +
+        "list.style.padding='20px';" +
         "list.style.listStyle='none';" +
 
-        "for (let folder of folders) {" +
+        "folders.forEach(function(folder) {" +
 
         "let link = folder.querySelector('a');" +
-        "if(!link) continue;" +
+        "if(!link) return;" +
 
         "let folderUrl = link.href;" +
         "let folderName = link.textContent.trim();" +
-
-        "if(!folderName) {" +
-        "folderName = folderUrl.split('/').filter(Boolean).pop();" +
-        "}" +
 
         "folder.innerHTML='';" +
         "folder.style.textAlign='center';" +
@@ -112,57 +94,36 @@ public class MainActivity extends AppCompatActivity {
         "img.style.width='100%';" +
         "img.style.aspectRatio='2/3';" +
         "img.style.objectFit='contain';" +
-        "img.style.borderRadius='12px';" +
-        "img.style.background='#111';" +
-
-        // Loading placeholder
-        "img.src='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(" +
-        "'<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"300\" height=\"450\">" +
-        "<rect width=\"100%\" height=\"100%\" fill=\"#111\"/>" +
-        "<text x=\"50%\" y=\"50%\" dominant-baseline=\"middle\" text-anchor=\"middle\" fill=\"#555\" font-size=\"18\">Loading...</text>" +
-        "</svg>');" +
+        "img.style.borderRadius='8px';" +
+        "img.style.background='#f0f0f0';" +
 
         // Fetch first JPG inside folder
-        "try {" +
-        "let res = await fetch(folderUrl);" +
-        "let html = await res.text();" +
-        "let parser = new DOMParser();" +
-        "let doc = parser.parseFromString(html,'text/html');" +
-        "let jpg = doc.querySelector('a[href$=\".jpg\"],a[href$=\".JPG\"]');" +
-        "if(jpg) {" +
+        "fetch(folderUrl)" +
+        ".then(r=>r.text())" +
+        ".then(html=>{" +
+        "let parser=new DOMParser();" +
+        "let doc=parser.parseFromString(html,'text/html');" +
+        "let jpg=doc.querySelector('a[href$=\".jpg\"],a[href$=\".JPG\"]');" +
+        "if(jpg){" +
         "img.src = folderUrl + jpg.getAttribute('href');" +
         "} else {" +
-        "img.src='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(" +
-        "'<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"300\" height=\"450\">" +
-        "<rect width=\"100%\" height=\"100%\" fill=\"#111\"/>" +
-        "<text x=\"50%\" y=\"50%\" dominant-baseline=\"middle\" text-anchor=\"middle\" fill=\"#555\" font-size=\"18\">No Poster</text>" +
-        "</svg>');" +
+        "img.src = '';" +
         "}" +
-        "} catch(e) {" +
-        "img.src='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(" +
-        "'<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"300\" height=\"450\">" +
-        "<rect width=\"100%\" height=\"100%\" fill=\"#111\"/>" +
-        "<text x=\"50%\" y=\"50%\" dominant-baseline=\"middle\" text-anchor=\"middle\" fill=\"#555\" font-size=\"18\">No Poster</text>" +
-        "</svg>');" +
-        "}" +
+        "});" +
 
         "let title=document.createElement('div');" +
         "title.textContent=folderName;" +
-        "title.style.color='white';" +
-        "title.style.marginTop='10px';" +
+        "title.style.marginTop='8px';" +
         "title.style.fontSize='14px';" +
+        "title.style.color='#000000';" +
         "title.style.wordBreak='break-word';" +
 
         "folder.appendChild(img);" +
         "folder.appendChild(title);" +
 
-        "folder.setAttribute('tabindex','0');" +
         "folder.onclick=function(){ window.location.href=folderUrl; };" +
-        "folder.onkeydown=function(e){ if(e.key==='Enter'){ window.location.href=folderUrl; } };" +
 
-        "}" +
-
-        "document.body.style.background='#000';" +
+        "});" +
 
         "})();";
 
