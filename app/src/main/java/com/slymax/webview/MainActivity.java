@@ -28,6 +28,8 @@ public class MainActivity extends AppCompatActivity {
         webView.getSettings().setDomStorageEnabled(true);
         webView.getSettings().setUseWideViewPort(true);
         webView.getSettings().setLoadWithOverviewMode(true);
+        webView.getSettings().setAllowFileAccess(true);
+        webView.getSettings().setAllowContentAccess(true);
 
         webView.setWebViewClient(new WebViewClient() {
 
@@ -70,9 +72,10 @@ public class MainActivity extends AppCompatActivity {
                 + "let gallery = document.createElement('div');"
                 + "gallery.style.display='grid';"
                 + "gallery.style.gridTemplateColumns='repeat(auto-fill, minmax(220px,1fr))';"
-                + "gallery.style.gap='20px';"
-                + "gallery.style.padding='20px';"
+                + "gallery.style.gap='24px';"
+                + "gallery.style.padding='30px';"
                 + "gallery.style.background='#111';"
+                + "gallery.style.minHeight='100vh';"
 
                 + "folders.forEach(function(folder){"
 
@@ -80,7 +83,6 @@ public class MainActivity extends AppCompatActivity {
                 + "if(!link) return;"
 
                 + "let folderUrl = link.href;"
-                + "let posterUrl = folderUrl + 'a_AL_.jpg';"
 
                 + "let card = document.createElement('div');"
                 + "card.style.textAlign='center';"
@@ -90,14 +92,37 @@ public class MainActivity extends AppCompatActivity {
                 + "card.setAttribute('tabindex','0');"
 
                 + "let img = document.createElement('img');"
-                + "img.src = posterUrl;"
                 + "img.style.width='100%';"
-                + "img.style.borderRadius='10px';"
-                + "img.style.boxShadow='0 4px 10px rgba(0,0,0,0.6)';"
+                + "img.style.height='330px';"
+                + "img.style.objectFit='cover';"
+                + "img.style.borderRadius='12px';"
+                + "img.style.boxShadow='0 6px 16px rgba(0,0,0,0.6)';"
+                + "img.style.background='#222';"
+
+                // Placeholder
+                + "let placeholder = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent("
+                + "'<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"300\" height=\"450\">"
+                + "<rect width=\"100%\" height=\"100%\" fill=\"#222\"/>"
+                + "<text x=\"50%\" y=\"50%\" dominant-baseline=\"middle\" text-anchor=\"middle\" fill=\"#666\" font-size=\"20\">No Poster</text>"
+                + "</svg>'"
+                + ");"
+
+                + "img.src = placeholder;"
+
+                // Fetch folder HTML to find .jpg
+                + "fetch(folderUrl)"
+                + ".then(r => r.text())"
+                + ".then(html => {"
+                + "let match = html.match(/href=\\\"([^\\\"]+\\.jpg)\\\"/i);"
+                + "if(match){"
+                + "img.src = folderUrl + match[1];"
+                + "}"
+                + "})"
+                + ".catch(()=>{});"
 
                 + "let title = document.createElement('div');"
                 + "title.innerText = link.innerText;"
-                + "title.style.marginTop='10px';"
+                + "title.style.marginTop='12px';"
                 + "title.style.fontSize='16px';"
 
                 + "card.appendChild(img);"
