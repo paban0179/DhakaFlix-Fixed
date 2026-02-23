@@ -58,80 +58,89 @@ public class MainActivity extends AppCompatActivity {
     private void injectGalleryScript() {
 
         String js =
-                "(function() {" +
+        "(function() {" +
 
-                "let list = document.querySelector('#items');" +
-                "if(!list) return;" +
+        "let list = document.querySelector('#items');" +
+        "if(!list) return;" +
 
-                "let folders = document.querySelectorAll('#items li.item.folder');" +
-                "if(folders.length === 0) return;" +
+        "let folders = document.querySelectorAll('#items li.item.folder');" +
+        "if(folders.length === 0) return;" +
 
-                // turn list into grid
-                "list.style.display='grid';" +
-                "list.style.gridTemplateColumns='repeat(auto-fill, minmax(160px,1fr))';" +
-                "list.style.gap='20px';" +
-                "list.style.padding='20px';" +
-                "list.style.listStyle='none';" +
+        // Turn into grid but KEEP scrolling container
+        "list.style.display='grid';" +
+        "list.style.gridTemplateColumns='repeat(auto-fill,minmax(160px,1fr))';" +
+        "list.style.gap='18px';" +
+        "list.style.padding='20px';" +
+        "list.style.listStyle='none';" +
 
-                "folders.forEach(function(folder) {" +
+        "folders.forEach(function(folder) {" +
 
-                "let link = folder.querySelector('a');" +
-                "if(!link) return;" +
+        "let link = folder.querySelector('a');" +
+        "if(!link) return;" +
 
-                "let folderUrl = link.href;" +
-                "let folderName = link.innerText;" +
+        "let folderUrl = link.href;" +
+        "let folderName = link.innerText;" +
 
-                "folder.style.background='none';" +
-                "folder.style.border='none';" +
-                "folder.style.textAlign='center';" +
+        "folder.innerHTML='';" +
+        "folder.style.textAlign='center';" +
 
-                // remove original content
-                "folder.innerHTML='';" +
+        "let img = document.createElement('img');" +
+        "img.style.width='100%';" +
+        "img.style.height='240px';" +
+        "img.style.objectFit='cover';" +
+        "img.style.borderRadius='10px';" +
+        "img.style.background='#222';" +
 
-                "let img = document.createElement('img');" +
-                "img.style.width='100%';" +
-                "img.style.height='240px';" +
-                "img.style.objectFit='cover';" +
-                "img.style.borderRadius='10px';" +
-                "img.style.background='#222';" +
+        // Placeholder first
+        "img.src='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(" +
+        "'<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"300\" height=\"450\">" +
+        "<rect width=\"100%\" height=\"100%\" fill=\"#222\"/>" +
+        "<text x=\"50%\" y=\"50%\" dominant-baseline=\"middle\" text-anchor=\"middle\" fill=\"#666\" font-size=\"18\">Loading...</text>" +
+        "</svg>');" +
 
-                // Try loading default jpg guess
-                "img.src = folderUrl + folderName + '.jpg';" +
+        // Fetch folder HTML safely
+        "fetch(folderUrl)" +
+        ".then(r=>r.text())" +
+        ".then(html=>{" +
+        "let parser=new DOMParser();" +
+        "let doc=parser.parseFromString(html,'text/html');" +
+        "let jpg=doc.querySelector('a[href$=\".jpg\"],a[href$=\".JPG\"]');" +
+        "if(jpg){" +
+        "img.src=folderUrl + jpg.getAttribute('href');" +
+        "}else{" +
+        "img.src='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(" +
+        "'<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"300\" height=\"450\">" +
+        "<rect width=\"100%\" height=\"100%\" fill=\"#222\"/>" +
+        "<text x=\"50%\" y=\"50%\" dominant-baseline=\"middle\" text-anchor=\"middle\" fill=\"#666\" font-size=\"18\">No Poster</text>" +
+        "</svg>');" +
+        "}" +
+        "})" +
+        ".catch(()=>{});" +
 
-                // fallback if fails
-                "img.onerror = function() {" +
-                "this.onerror=null;" +
-                "this.src='data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(" +
-                "'<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"300\" height=\"450\">" +
-                "<rect width=\"100%\" height=\"100%\" fill=\"#222\"/>" +
-                "<text x=\"50%\" y=\"50%\" dominant-baseline=\"middle\" text-anchor=\"middle\" fill=\"#666\" font-size=\"18\">No Poster</text>" +
-                "</svg>');" +
-                "};" +
+        "let title=document.createElement('div');" +
+        "title.innerText=folderName;" +
+        "title.style.color='white';" +
+        "title.style.marginTop='8px';" +
+        "title.style.fontSize='14px';" +
 
-                "let title = document.createElement('div');" +
-                "title.innerText = folderName;" +
-                "title.style.color='white';" +
-                "title.style.fontSize='14px';" +
-                "title.style.marginTop='8px';" +
+        "folder.appendChild(img);" +
+        "folder.appendChild(title);" +
 
-                "folder.appendChild(img);" +
-                "folder.appendChild(title);" +
+        "folder.setAttribute('tabindex','0');" +
 
-                "folder.setAttribute('tabindex','0');" +
+        "folder.addEventListener('click',function(){" +
+        "window.location.href=folderUrl;" +
+        "});" +
 
-                "folder.addEventListener('click', function() {" +
-                "window.location.href = folderUrl;" +
-                "});" +
+        "folder.addEventListener('keydown',function(e){" +
+        "if(e.key==='Enter'){window.location.href=folderUrl;}" +
+        "});" +
 
-                "folder.addEventListener('keydown', function(e) {" +
-                "if(e.key==='Enter'){ window.location.href = folderUrl; }" +
-                "});" +
+        "});" +
 
-                "});" +
+        "document.body.style.background='#111';" +
 
-                "document.body.style.background='#111';" +
-
-                "})();";
+        "})();";
 
         webView.evaluateJavascript(js, null);
     }
