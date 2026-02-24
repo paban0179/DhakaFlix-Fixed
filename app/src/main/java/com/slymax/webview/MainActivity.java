@@ -3,6 +3,7 @@ package com.slymax.webview;
 import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.view.KeyEvent;
+import android.view.View;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -13,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity;
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
+    private boolean pageReady = false;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -31,15 +33,18 @@ public class MainActivity extends AppCompatActivity {
         settings.setBuiltInZoomControls(true);
         settings.setDisplayZoomControls(false);
 
-        webView.setFocusable(true);
-        webView.setFocusableInTouchMode(true);
-        webView.requestFocus();
+        // 🚫 Disable default focus navigation
+        webView.setFocusable(false);
+        webView.setFocusableInTouchMode(false);
+        webView.setOnFocusChangeListener(null);
+        webView.setDescendantFocusability(View.FOCUS_BLOCK_DESCENDANTS);
 
         webView.setWebChromeClient(new WebChromeClient());
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
+                pageReady = false;
                 injectTVMode();
             }
         });
@@ -52,7 +57,7 @@ public class MainActivity extends AppCompatActivity {
         String js =
                 "(function() {" +
 
-                // Remove header + sidebar
+                // Remove header and sidebar
                 "var header = document.querySelector('header'); if(header) header.remove();" +
                 "var topbar = document.getElementById('topbar'); if(topbar) topbar.remove();" +
                 "var sidebar = document.getElementById('sidebar'); if(sidebar) sidebar.remove();" +
@@ -62,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
                 "var main = document.querySelector('main'); if(main){ main.style.margin='0'; main.style.width='100%'; }" +
                 "var content = document.getElementById('content'); if(content){ content.style.margin='0'; content.style.width='100%'; }" +
 
-                // Fix poster image full height
+                // Fix image fullscreen fit
                 "var imgs = document.querySelectorAll('img');" +
                 "imgs.forEach(function(img){" +
                 "   img.style.maxHeight='100vh';" +
@@ -71,17 +76,22 @@ public class MainActivity extends AppCompatActivity {
                 "   img.style.margin='0 auto';" +
                 "});" +
 
-                // Prepare navigation system
+                // Setup navigation
                 "window.tvIndex = 0;" +
                 "window.tvItems = Array.from(document.querySelectorAll('#items li.item > a'));" +
 
                 "window.updateFocus = function() {" +
                 "  if(window.tvItems.length === 0) return;" +
-                "  window.tvItems.forEach(function(el){ el.style.background=''; el.style.outline='none'; });" +
+                "  window.tvItems.forEach(function(el){" +
+                "     el.style.background='';" +
+                "     el.style.color='';" +
+                "  });" +
                 "  var el = window.tvItems[window.tvIndex];" +
-                "  el.style.background='#2a7fff';" +
-                "  el.style.color='#fff';" +
-                "  el.scrollIntoView({block:'center'});" +
+                "  if(el) {" +
+                "     el.style.background='#2a7fff';" +
+                "     el.style.color='#fff';" +
+                "     el.scrollIntoView({block:'center'});" +
+                "  }" +
                 "};" +
 
                 "window.moveDown = function() {" +
@@ -105,19 +115,19 @@ public class MainActivity extends AppCompatActivity {
                 "};" +
 
                 "setTimeout(function(){" +
-                "  window.tvIndex = 0;" +
-                "  window.updateFocus();" +
-                "}, 300);" +
+                "   window.tvIndex = 0;" +
+                "   window.updateFocus();" +
+                "}, 500);" +
 
                 "})();";
 
-        webView.evaluateJavascript(js, null);
+        webView.evaluateJavascript(js, value -> pageReady = true);
     }
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
 
-        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN && pageReady) {
 
             switch (event.getKeyCode()) {
 
