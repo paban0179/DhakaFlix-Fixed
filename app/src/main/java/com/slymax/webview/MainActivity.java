@@ -49,49 +49,48 @@ public class MainActivity extends AppCompatActivity {
         String js =
                 "(function() {" +
 
-                // 🔥 Disable all existing keyboard handlers
-                "document.onkeydown = null;" +
-                "document.onkeyup = null;" +
-                "window.onkeydown = null;" +
-                "window.onkeyup = null;" +
-
-                // Remove header & side panels
+                // Remove unwanted panels
                 "var header = document.querySelector('header'); if(header) header.remove();" +
                 "var topbar = document.getElementById('topbar'); if(topbar) topbar.remove();" +
                 "var sidebar = document.getElementById('sidebar'); if(sidebar) sidebar.remove();" +
                 "var tree = document.getElementById('tree'); if(tree) tree.remove();" +
 
                 // Expand content
-                "var main = document.querySelector('main'); if(main){ main.style.margin='0'; main.style.width='100%'; }" +
-                "var content = document.getElementById('content'); if(content){ content.style.margin='0'; content.style.width='100%'; }" +
+                "document.body.style.margin='0';" +
 
-                // Disable all native focus
-                "var all = document.querySelectorAll('*');" +
-                "all.forEach(function(el){ el.tabIndex = -1; el.blur && el.blur(); });" +
+                // Disable native focus
+                "document.querySelectorAll('*').forEach(function(el){ el.tabIndex=-1; });" +
 
                 // Fix images full height
-                "var imgs = document.querySelectorAll('img');" +
-                "imgs.forEach(function(img){" +
+                "document.querySelectorAll('img').forEach(function(img){" +
                 "   img.style.maxHeight='100vh';" +
                 "   img.style.width='auto';" +
                 "   img.style.display='block';" +
                 "   img.style.margin='0 auto';" +
                 "});" +
 
-                // NAVIGATION SYSTEM
+                // -------- NAVIGATION SYSTEM --------
                 "window.buildNavigation = function() {" +
                 "   window.tvIndex = 0;" +
-                "   window.tvItems = Array.from(document.querySelectorAll('#items li.item > a'));" +
+
+                // Get ALL visible links inside file list area
+                "   window.tvItems = Array.from(document.querySelectorAll('a'))" +
+                "     .filter(function(a) {" +
+                "         var rect = a.getBoundingClientRect();" +
+                "         return rect.width > 0 && rect.height > 0;" +
+                "     });" +
+
                 "   window.updateFocus();" +
                 "};" +
 
                 "window.updateFocus = function() {" +
                 "  if(!window.tvItems || window.tvItems.length === 0) return;" +
+
                 "  window.tvItems.forEach(function(el){" +
                 "     el.style.background='';" +
-                "     el.style.boxShadow='';" +
                 "     el.style.color='';" +
                 "  });" +
+
                 "  var el = window.tvItems[window.tvIndex];" +
                 "  if(el) {" +
                 "     el.style.background='#2a7fff';" +
@@ -122,15 +121,13 @@ public class MainActivity extends AppCompatActivity {
                 "  }" +
                 "};" +
 
-                // Rebuild navigation whenever DOM changes
+                // Watch DOM changes (important for h5ai)
                 "var observer = new MutationObserver(function() {" +
                 "   window.buildNavigation();" +
                 "});" +
-                "observer.observe(document.body, { childList: true, subtree: true });" +
+                "observer.observe(document.body, { childList:true, subtree:true });" +
 
-                "setTimeout(function(){" +
-                "   window.buildNavigation();" +
-                "}, 500);" +
+                "setTimeout(function(){ window.buildNavigation(); }, 500);" +
 
                 "})();";
 
