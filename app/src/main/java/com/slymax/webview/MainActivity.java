@@ -25,8 +25,11 @@ public class MainActivity extends AppCompatActivity {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
-        settings.setUseWideViewPort(true);
+        settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setLoadWithOverviewMode(true);
+        settings.setUseWideViewPort(true);
+        settings.setBuiltInZoomControls(true);
+        settings.setDisplayZoomControls(false);
 
         webView.setFocusable(true);
         webView.setFocusableInTouchMode(true);
@@ -37,94 +40,74 @@ public class MainActivity extends AppCompatActivity {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
-                injectCleanTVMode();
+                injectTVMode();
             }
         });
 
         webView.loadUrl("http://172.16.50.4/");
     }
 
-    private void injectCleanTVMode() {
+    private void injectTVMode() {
 
         String js =
                 "(function() {" +
 
-                // 1️⃣ Remove top horizontal bar completely
-                "var header = document.querySelector('header');" +
-                "if(header) header.remove();" +
+                // Remove header + sidebar
+                "var header = document.querySelector('header'); if(header) header.remove();" +
+                "var topbar = document.getElementById('topbar'); if(topbar) topbar.remove();" +
+                "var sidebar = document.getElementById('sidebar'); if(sidebar) sidebar.remove();" +
+                "var tree = document.getElementById('tree'); if(tree) tree.remove();" +
 
-                "var topbar = document.getElementById('topbar');" +
-                "if(topbar) topbar.remove();" +
+                // Expand content
+                "var main = document.querySelector('main'); if(main){ main.style.margin='0'; main.style.width='100%'; }" +
+                "var content = document.getElementById('content'); if(content){ content.style.margin='0'; content.style.width='100%'; }" +
 
-                // 2️⃣ Remove left directory tree completely
-                "var sidebar = document.getElementById('sidebar');" +
-                "if(sidebar) sidebar.remove();" +
+                // Fix poster image full height
+                "var imgs = document.querySelectorAll('img');" +
+                "imgs.forEach(function(img){" +
+                "   img.style.maxHeight='100vh';" +
+                "   img.style.width='auto';" +
+                "   img.style.display='block';" +
+                "   img.style.margin='0 auto';" +
+                "});" +
 
-                "var tree = document.getElementById('tree');" +
-                "if(tree) tree.remove();" +
+                // Prepare navigation system
+                "window.tvIndex = 0;" +
+                "window.tvItems = Array.from(document.querySelectorAll('#items li.item > a'));" +
 
-                // 3️⃣ Expand main content to full width
-                "var main = document.querySelector('main');" +
-                "if(main) {" +
-                "  main.style.margin = '0';" +
-                "  main.style.width = '100%';" +
-                "}" +
+                "window.updateFocus = function() {" +
+                "  if(window.tvItems.length === 0) return;" +
+                "  window.tvItems.forEach(function(el){ el.style.background=''; el.style.outline='none'; });" +
+                "  var el = window.tvItems[window.tvIndex];" +
+                "  el.style.background='#2a7fff';" +
+                "  el.style.color='#fff';" +
+                "  el.scrollIntoView({block:'center'});" +
+                "};" +
 
-                // Some h5ai versions use #content
-                "var content = document.getElementById('content');" +
-                "if(content) {" +
-                "  content.style.margin = '0';" +
-                "  content.style.width = '100%';" +
-                "}" +
+                "window.moveDown = function() {" +
+                "  if(window.tvIndex < window.tvItems.length-1) {" +
+                "     window.tvIndex++;" +
+                "     window.updateFocus();" +
+                "  }" +
+                "};" +
 
-                // 4️⃣ Focus only folder list
-                "function setupNavigation() {" +
-                "  var items = Array.from(document.querySelectorAll('#items li.item > a'));" +
-                "  if(items.length === 0) return;" +
+                "window.moveUp = function() {" +
+                "  if(window.tvIndex > 0) {" +
+                "     window.tvIndex--;" +
+                "     window.updateFocus();" +
+                "  }" +
+                "};" +
 
-                "  items.forEach(function(el, i) {" +
-                "    el.tabIndex = 0;" +
-                "    el.dataset.index = i;" +
-                "  });" +
+                "window.selectItem = function() {" +
+                "  if(window.tvItems.length > 0) {" +
+                "     window.tvItems[window.tvIndex].click();" +
+                "  }" +
+                "};" +
 
-                "  setTimeout(function() {" +
-                "    items[0].focus();" +
-                "    items[0].scrollIntoView({block:'center'});" +
-                "  }, 300);" +
-
-                "  document.addEventListener('keydown', function(e) {" +
-                "    var active = document.activeElement;" +
-                "    if(!active || !active.dataset.index) return;" +
-                "    var index = parseInt(active.dataset.index);" +
-
-                // DOWN
-                "    if(e.keyCode === 40) {" +
-                "      e.preventDefault();" +
-                "      if(index < items.length - 1) {" +
-                "        items[index + 1].focus();" +
-                "        items[index + 1].scrollIntoView({block:'center'});" +
-                "      }" +
-                "    }" +
-
-                // UP
-                "    if(e.keyCode === 38) {" +
-                "      e.preventDefault();" +
-                "      if(index > 0) {" +
-                "        items[index - 1].focus();" +
-                "        items[index - 1].scrollIntoView({block:'center'});" +
-                "      }" +
-                "    }" +
-
-                // ENTER
-                "    if(e.keyCode === 13) {" +
-                "      e.preventDefault();" +
-                "      active.click();" +
-                "    }" +
-                "  });" +
-                "}" +
-
-                // Delay to override h5ai rendering
-                "setTimeout(setupNavigation, 500);" +
+                "setTimeout(function(){" +
+                "  window.tvIndex = 0;" +
+                "  window.updateFocus();" +
+                "}, 300);" +
 
                 "})();";
 
@@ -132,15 +115,34 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
+    public boolean dispatchKeyEvent(KeyEvent event) {
 
-        if (keyCode == KeyEvent.KEYCODE_BACK) {
-            if (webView.canGoBack()) {
-                webView.goBack();
-                return true;
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+
+            switch (event.getKeyCode()) {
+
+                case KeyEvent.KEYCODE_DPAD_DOWN:
+                    webView.evaluateJavascript("moveDown()", null);
+                    return true;
+
+                case KeyEvent.KEYCODE_DPAD_UP:
+                    webView.evaluateJavascript("moveUp()", null);
+                    return true;
+
+                case KeyEvent.KEYCODE_DPAD_CENTER:
+                case KeyEvent.KEYCODE_ENTER:
+                    webView.evaluateJavascript("selectItem()", null);
+                    return true;
+
+                case KeyEvent.KEYCODE_BACK:
+                    if (webView.canGoBack()) {
+                        webView.goBack();
+                        return true;
+                    }
+                    break;
             }
         }
 
-        return super.onKeyDown(keyCode, event);
+        return super.dispatchKeyEvent(event);
     }
 }
