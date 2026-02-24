@@ -13,7 +13,6 @@ import androidx.appcompat.app.AppCompatActivity;
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
-    private boolean pageReady = false;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -29,11 +28,8 @@ public class MainActivity extends AppCompatActivity {
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
-        settings.setBuiltInZoomControls(true);
-        settings.setDisplayZoomControls(false);
 
         webView.setFocusable(true);
-        webView.setFocusableInTouchMode(true);
         webView.requestFocus();
 
         webView.setWebChromeClient(new WebChromeClient());
@@ -53,7 +49,13 @@ public class MainActivity extends AppCompatActivity {
         String js =
                 "(function() {" +
 
-                // Remove header + sidebar
+                // 🔥 Disable all existing keyboard handlers
+                "document.onkeydown = null;" +
+                "document.onkeyup = null;" +
+                "window.onkeydown = null;" +
+                "window.onkeyup = null;" +
+
+                // Remove header & side panels
                 "var header = document.querySelector('header'); if(header) header.remove();" +
                 "var topbar = document.getElementById('topbar'); if(topbar) topbar.remove();" +
                 "var sidebar = document.getElementById('sidebar'); if(sidebar) sidebar.remove();" +
@@ -63,7 +65,11 @@ public class MainActivity extends AppCompatActivity {
                 "var main = document.querySelector('main'); if(main){ main.style.margin='0'; main.style.width='100%'; }" +
                 "var content = document.getElementById('content'); if(content){ content.style.margin='0'; content.style.width='100%'; }" +
 
-                // Make images fit screen
+                // Disable all native focus
+                "var all = document.querySelectorAll('*');" +
+                "all.forEach(function(el){ el.tabIndex = -1; el.blur && el.blur(); });" +
+
+                // Fix images full height
                 "var imgs = document.querySelectorAll('img');" +
                 "imgs.forEach(function(img){" +
                 "   img.style.maxHeight='100vh';" +
@@ -83,6 +89,7 @@ public class MainActivity extends AppCompatActivity {
                 "  if(!window.tvItems || window.tvItems.length === 0) return;" +
                 "  window.tvItems.forEach(function(el){" +
                 "     el.style.background='';" +
+                "     el.style.boxShadow='';" +
                 "     el.style.color='';" +
                 "  });" +
                 "  var el = window.tvItems[window.tvIndex];" +
@@ -115,27 +122,23 @@ public class MainActivity extends AppCompatActivity {
                 "  }" +
                 "};" +
 
-                // Observe DOM changes (CRITICAL FIX)
-                "var observer = new MutationObserver(function(mutations) {" +
+                // Rebuild navigation whenever DOM changes
+                "var observer = new MutationObserver(function() {" +
                 "   window.buildNavigation();" +
                 "});" +
-
                 "observer.observe(document.body, { childList: true, subtree: true });" +
 
-                // Initial build
-                "setTimeout(function() {" +
+                "setTimeout(function(){" +
                 "   window.buildNavigation();" +
                 "}, 500);" +
 
                 "})();";
 
-        webView.evaluateJavascript(js, value -> pageReady = true);
+        webView.evaluateJavascript(js, null);
     }
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-
-        if (!pageReady) return super.onKeyDown(keyCode, event);
 
         switch (keyCode) {
 
