@@ -3,7 +3,6 @@ package com.slymax.webview;
 import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.view.KeyEvent;
-import android.view.View;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -33,11 +32,9 @@ public class MainActivity extends AppCompatActivity {
         settings.setBuiltInZoomControls(true);
         settings.setDisplayZoomControls(false);
 
-        // 🚫 Disable default focus navigation
+        // Disable WebView default focus system
         webView.setFocusable(false);
         webView.setFocusableInTouchMode(false);
-        webView.setOnFocusChangeListener(null);
-        webView.setDescendantFocusability(View.FOCUS_BLOCK_DESCENDANTS);
 
         webView.setWebChromeClient(new WebChromeClient());
 
@@ -67,7 +64,7 @@ public class MainActivity extends AppCompatActivity {
                 "var main = document.querySelector('main'); if(main){ main.style.margin='0'; main.style.width='100%'; }" +
                 "var content = document.getElementById('content'); if(content){ content.style.margin='0'; content.style.width='100%'; }" +
 
-                // Fix image fullscreen fit
+                // Make images fit screen vertically
                 "var imgs = document.querySelectorAll('img');" +
                 "imgs.forEach(function(img){" +
                 "   img.style.maxHeight='100vh';" +
@@ -76,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
                 "   img.style.margin='0 auto';" +
                 "});" +
 
-                // Setup navigation
+                // Setup navigation system
                 "window.tvIndex = 0;" +
                 "window.tvItems = Array.from(document.querySelectorAll('#items li.item > a'));" +
 
@@ -89,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
                 "  var el = window.tvItems[window.tvIndex];" +
                 "  if(el) {" +
                 "     el.style.background='#2a7fff';" +
-                "     el.style.color='#fff';" +
+                "     el.style.color='#ffffff';" +
                 "     el.scrollIntoView({block:'center'});" +
                 "  }" +
                 "};" +
