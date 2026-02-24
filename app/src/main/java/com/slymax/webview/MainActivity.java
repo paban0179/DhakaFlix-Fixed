@@ -32,7 +32,6 @@ public class MainActivity extends AppCompatActivity {
         settings.setBuiltInZoomControls(true);
         settings.setDisplayZoomControls(false);
 
-        // KEEP WebView focus enabled
         webView.setFocusable(true);
         webView.setFocusableInTouchMode(true);
         webView.requestFocus();
@@ -42,7 +41,6 @@ public class MainActivity extends AppCompatActivity {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
-                pageReady = false;
                 injectTVMode();
             }
         });
@@ -55,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
         String js =
                 "(function() {" +
 
-                // Remove header & sidebar
+                // Remove header + sidebar
                 "var header = document.querySelector('header'); if(header) header.remove();" +
                 "var topbar = document.getElementById('topbar'); if(topbar) topbar.remove();" +
                 "var sidebar = document.getElementById('sidebar'); if(sidebar) sidebar.remove();" +
@@ -65,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
                 "var main = document.querySelector('main'); if(main){ main.style.margin='0'; main.style.width='100%'; }" +
                 "var content = document.getElementById('content'); if(content){ content.style.margin='0'; content.style.width='100%'; }" +
 
-                // Fix image full height
+                // Make images fit screen
                 "var imgs = document.querySelectorAll('img');" +
                 "imgs.forEach(function(img){" +
                 "   img.style.maxHeight='100vh';" +
@@ -74,12 +72,15 @@ public class MainActivity extends AppCompatActivity {
                 "   img.style.margin='0 auto';" +
                 "});" +
 
-                // Setup navigation system
-                "window.tvIndex = 0;" +
-                "window.tvItems = Array.from(document.querySelectorAll('#items li.item > a'));" +
+                // NAVIGATION SYSTEM
+                "window.buildNavigation = function() {" +
+                "   window.tvIndex = 0;" +
+                "   window.tvItems = Array.from(document.querySelectorAll('#items li.item > a'));" +
+                "   window.updateFocus();" +
+                "};" +
 
                 "window.updateFocus = function() {" +
-                "  if(window.tvItems.length === 0) return;" +
+                "  if(!window.tvItems || window.tvItems.length === 0) return;" +
                 "  window.tvItems.forEach(function(el){" +
                 "     el.style.background='';" +
                 "     el.style.color='';" +
@@ -93,6 +94,7 @@ public class MainActivity extends AppCompatActivity {
                 "};" +
 
                 "window.moveDown = function() {" +
+                "  if(!window.tvItems) return;" +
                 "  if(window.tvIndex < window.tvItems.length-1) {" +
                 "     window.tvIndex++;" +
                 "     window.updateFocus();" +
@@ -100,6 +102,7 @@ public class MainActivity extends AppCompatActivity {
                 "};" +
 
                 "window.moveUp = function() {" +
+                "  if(!window.tvItems) return;" +
                 "  if(window.tvIndex > 0) {" +
                 "     window.tvIndex--;" +
                 "     window.updateFocus();" +
@@ -107,14 +110,21 @@ public class MainActivity extends AppCompatActivity {
                 "};" +
 
                 "window.selectItem = function() {" +
-                "  if(window.tvItems.length > 0) {" +
+                "  if(window.tvItems && window.tvItems.length > 0) {" +
                 "     window.tvItems[window.tvIndex].click();" +
                 "  }" +
                 "};" +
 
-                "setTimeout(function(){" +
-                "   window.tvIndex = 0;" +
-                "   window.updateFocus();" +
+                // Observe DOM changes (CRITICAL FIX)
+                "var observer = new MutationObserver(function(mutations) {" +
+                "   window.buildNavigation();" +
+                "});" +
+
+                "observer.observe(document.body, { childList: true, subtree: true });" +
+
+                // Initial build
+                "setTimeout(function() {" +
+                "   window.buildNavigation();" +
                 "}, 500);" +
 
                 "})();";
