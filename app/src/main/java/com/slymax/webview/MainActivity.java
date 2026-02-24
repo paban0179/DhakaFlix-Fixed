@@ -32,9 +32,10 @@ public class MainActivity extends AppCompatActivity {
         settings.setBuiltInZoomControls(true);
         settings.setDisplayZoomControls(false);
 
-        // Disable WebView default focus system
-        webView.setFocusable(false);
-        webView.setFocusableInTouchMode(false);
+        // KEEP WebView focus enabled
+        webView.setFocusable(true);
+        webView.setFocusableInTouchMode(true);
+        webView.requestFocus();
 
         webView.setWebChromeClient(new WebChromeClient());
 
@@ -54,7 +55,7 @@ public class MainActivity extends AppCompatActivity {
         String js =
                 "(function() {" +
 
-                // Remove header and sidebar
+                // Remove header & sidebar
                 "var header = document.querySelector('header'); if(header) header.remove();" +
                 "var topbar = document.getElementById('topbar'); if(topbar) topbar.remove();" +
                 "var sidebar = document.getElementById('sidebar'); if(sidebar) sidebar.remove();" +
@@ -64,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
                 "var main = document.querySelector('main'); if(main){ main.style.margin='0'; main.style.width='100%'; }" +
                 "var content = document.getElementById('content'); if(content){ content.style.margin='0'; content.style.width='100%'; }" +
 
-                // Make images fit screen vertically
+                // Fix image full height
                 "var imgs = document.querySelectorAll('img');" +
                 "imgs.forEach(function(img){" +
                 "   img.style.maxHeight='100vh';" +
@@ -122,34 +123,33 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean dispatchKeyEvent(KeyEvent event) {
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
 
-        if (event.getAction() == KeyEvent.ACTION_DOWN && pageReady) {
+        if (!pageReady) return super.onKeyDown(keyCode, event);
 
-            switch (event.getKeyCode()) {
+        switch (keyCode) {
 
-                case KeyEvent.KEYCODE_DPAD_DOWN:
-                    webView.evaluateJavascript("moveDown()", null);
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+                webView.evaluateJavascript("moveDown()", null);
+                return true;
+
+            case KeyEvent.KEYCODE_DPAD_UP:
+                webView.evaluateJavascript("moveUp()", null);
+                return true;
+
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+            case KeyEvent.KEYCODE_ENTER:
+                webView.evaluateJavascript("selectItem()", null);
+                return true;
+
+            case KeyEvent.KEYCODE_BACK:
+                if (webView.canGoBack()) {
+                    webView.goBack();
                     return true;
-
-                case KeyEvent.KEYCODE_DPAD_UP:
-                    webView.evaluateJavascript("moveUp()", null);
-                    return true;
-
-                case KeyEvent.KEYCODE_DPAD_CENTER:
-                case KeyEvent.KEYCODE_ENTER:
-                    webView.evaluateJavascript("selectItem()", null);
-                    return true;
-
-                case KeyEvent.KEYCODE_BACK:
-                    if (webView.canGoBack()) {
-                        webView.goBack();
-                        return true;
-                    }
-                    break;
-            }
+                }
+                break;
         }
 
-        return super.dispatchKeyEvent(event);
+        return super.onKeyDown(keyCode, event);
     }
 }
