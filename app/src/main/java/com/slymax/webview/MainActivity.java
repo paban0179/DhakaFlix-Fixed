@@ -2,7 +2,6 @@ package com.slymax.webview;
 
 import android.annotation.SuppressLint;
 import android.os.Bundle;
-import android.view.KeyEvent;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -29,7 +28,9 @@ public class MainActivity extends AppCompatActivity {
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
 
+        // Keep normal focus behavior
         webView.setFocusable(true);
+        webView.setFocusableInTouchMode(true);
         webView.requestFocus();
 
         webView.setWebChromeClient(new WebChromeClient());
@@ -37,129 +38,36 @@ public class MainActivity extends AppCompatActivity {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
-                injectTVMode();
+                fixFocusTrap();
             }
         });
 
         webView.loadUrl("http://172.16.50.4/");
     }
 
-    private void injectTVMode() {
+    private void fixFocusTrap() {
 
         String js =
                 "(function() {" +
 
-                // Remove unwanted panels
-                "var header = document.querySelector('header'); if(header) header.remove();" +
-                "var topbar = document.getElementById('topbar'); if(topbar) topbar.remove();" +
-                "var sidebar = document.getElementById('sidebar'); if(sidebar) sidebar.remove();" +
-                "var tree = document.getElementById('tree'); if(tree) tree.remove();" +
-
-                // Expand content
-                "document.body.style.margin='0';" +
-
-                // Disable native focus
-                "document.querySelectorAll('*').forEach(function(el){ el.tabIndex=-1; });" +
-
-                // Fix images full height
-                "document.querySelectorAll('img').forEach(function(img){" +
-                "   img.style.maxHeight='100vh';" +
-                "   img.style.width='auto';" +
-                "   img.style.display='block';" +
-                "   img.style.margin='0 auto';" +
+                // Remove focus from top panel elements
+                "document.querySelectorAll('header a, #topbar a, .breadcrumbs a, .powered-by a').forEach(function(el) {" +
+                "    el.setAttribute('tabindex', '-1');" +
                 "});" +
 
-                // -------- NAVIGATION SYSTEM --------
-                "window.buildNavigation = function() {" +
-                "   window.tvIndex = 0;" +
-
-                // Get ALL visible links inside file list area
-                "   window.tvItems = Array.from(document.querySelectorAll('a'))" +
-                "     .filter(function(a) {" +
-                "         var rect = a.getBoundingClientRect();" +
-                "         return rect.width > 0 && rect.height > 0;" +
-                "     });" +
-
-                "   window.updateFocus();" +
-                "};" +
-
-                "window.updateFocus = function() {" +
-                "  if(!window.tvItems || window.tvItems.length === 0) return;" +
-
-                "  window.tvItems.forEach(function(el){" +
-                "     el.style.background='';" +
-                "     el.style.color='';" +
-                "  });" +
-
-                "  var el = window.tvItems[window.tvIndex];" +
-                "  if(el) {" +
-                "     el.style.background='#2a7fff';" +
-                "     el.style.color='#ffffff';" +
-                "     el.scrollIntoView({block:'center'});" +
-                "  }" +
-                "};" +
-
-                "window.moveDown = function() {" +
-                "  if(!window.tvItems) return;" +
-                "  if(window.tvIndex < window.tvItems.length-1) {" +
-                "     window.tvIndex++;" +
-                "     window.updateFocus();" +
-                "  }" +
-                "};" +
-
-                "window.moveUp = function() {" +
-                "  if(!window.tvItems) return;" +
-                "  if(window.tvIndex > 0) {" +
-                "     window.tvIndex--;" +
-                "     window.updateFocus();" +
-                "  }" +
-                "};" +
-
-                "window.selectItem = function() {" +
-                "  if(window.tvItems && window.tvItems.length > 0) {" +
-                "     window.tvItems[window.tvIndex].click();" +
-                "  }" +
-                "};" +
-
-                // Watch DOM changes (important for h5ai)
-                "var observer = new MutationObserver(function() {" +
-                "   window.buildNavigation();" +
+                // Remove focus from sidebar tree if present
+                "document.querySelectorAll('#sidebar a, #tree a').forEach(function(el) {" +
+                "    el.setAttribute('tabindex', '-1');" +
                 "});" +
-                "observer.observe(document.body, { childList:true, subtree:true });" +
 
-                "setTimeout(function(){ window.buildNavigation(); }, 500);" +
+                // Focus first folder/file row
+                "var firstItem = document.querySelector('.item a, tr td.name a');" +
+                "if (firstItem) {" +
+                "    firstItem.focus();" +
+                "}" +
 
                 "})();";
 
         webView.evaluateJavascript(js, null);
-    }
-
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-
-        switch (keyCode) {
-
-            case KeyEvent.KEYCODE_DPAD_DOWN:
-                webView.evaluateJavascript("moveDown()", null);
-                return true;
-
-            case KeyEvent.KEYCODE_DPAD_UP:
-                webView.evaluateJavascript("moveUp()", null);
-                return true;
-
-            case KeyEvent.KEYCODE_DPAD_CENTER:
-            case KeyEvent.KEYCODE_ENTER:
-                webView.evaluateJavascript("selectItem()", null);
-                return true;
-
-            case KeyEvent.KEYCODE_BACK:
-                if (webView.canGoBack()) {
-                    webView.goBack();
-                    return true;
-                }
-                break;
-        }
-
-        return super.onKeyDown(keyCode, event);
     }
 }
