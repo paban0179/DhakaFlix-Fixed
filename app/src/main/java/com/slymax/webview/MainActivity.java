@@ -13,7 +13,8 @@ import androidx.appcompat.app.AppCompatActivity;
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
-    private final Handler handler = new Handler();
+    private Handler handler = new Handler();
+    private String lastUrl = "";
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -33,7 +34,6 @@ public class MainActivity extends AppCompatActivity {
         settings.setLoadWithOverviewMode(true);
 
         webView.setFocusable(true);
-        webView.setFocusableInTouchMode(true);
         webView.requestFocus();
 
         webView.setWebChromeClient(new WebChromeClient());
@@ -41,56 +41,59 @@ public class MainActivity extends AppCompatActivity {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
-
-                // Apply fix multiple times because h5ai re-renders
-                applyFixRepeatedly();
+                lastUrl = url;
+                startUrlWatcher();
+                applyFocusFix();
             }
         });
 
         webView.loadUrl("http://172.16.50.4/");
     }
 
-    private void applyFixRepeatedly() {
-
-        handler.postDelayed(this::forceFocusAndFixMedia, 500);
-        handler.postDelayed(this::forceFocusAndFixMedia, 1200);
-        handler.postDelayed(this::forceFocusAndFixMedia, 2000);
+    private void startUrlWatcher() {
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                String current = webView.getUrl();
+                if (current != null && !current.equals(lastUrl)) {
+                    lastUrl = current;
+                    applyFocusFix();
+                }
+                handler.postDelayed(this, 800);
+            }
+        }, 800);
     }
 
-    private void forceFocusAndFixMedia() {
+    private void applyFocusFix() {
 
         String js =
                 "(function() {" +
 
-                // Remove focus from top panels
-                "document.querySelectorAll('header *, #topbar *, .breadcrumbs *, .powered-by *, nav *').forEach(function(el) {" +
+                // Remove only focusability, not content
+                "document.querySelectorAll('header a, #topbar a, .powered-by a').forEach(function(el) {" +
                 "   el.setAttribute('tabindex','-1');" +
                 "});" +
 
-                // Remove sidebar focus
-                "document.querySelectorAll('#sidebar *, #tree *').forEach(function(el) {" +
-                "   el.setAttribute('tabindex','-1');" +
-                "});" +
-
-                // Focus first folder/file item
+                // Focus first folder/file link
                 "var first = document.querySelector('.item a, tr td.name a');" +
                 "if(first) {" +
                 "   first.focus();" +
                 "   first.scrollIntoView({block:'center'});" +
                 "}" +
 
-                // Make images full screen height
+                // Fullscreen posters
                 "document.querySelectorAll('img').forEach(function(img){" +
-                "   img.style.maxHeight = '100vh';" +
-                "   img.style.width = 'auto';" +
-                "   img.style.display = 'block';" +
-                "   img.style.margin = '0 auto';" +
+                "   img.style.maxHeight='100vh';" +
+                "   img.style.width='auto';" +
+                "   img.style.display='block';" +
+                "   img.style.margin='0 auto';" +
                 "});" +
 
-                // Enable video autoplay + controls
+                // Enable video playback
                 "document.querySelectorAll('video').forEach(function(v){" +
-                "   v.setAttribute('controls', true);" +
-                "   v.setAttribute('autoplay', true);" +
+                "   v.controls = true;" +
+                "   v.autoplay = true;" +
+                "   v.load();" +
                 "   v.play().catch(function(){});" +
                 "});" +
 
