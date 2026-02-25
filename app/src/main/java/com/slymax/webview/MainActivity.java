@@ -1,9 +1,11 @@
 package com.slymax.webview;
 
 import android.annotation.SuppressLint;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -13,8 +15,6 @@ import androidx.appcompat.app.AppCompatActivity;
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
-    private final Handler handler = new Handler();
-    private String lastUrl = "";
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -27,14 +27,11 @@ public class MainActivity extends AppCompatActivity {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
-
-        // 🔥 Important for MP4 playback
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
 
         webView.setFocusable(true);
-        webView.setFocusableInTouchMode(true);
         webView.requestFocus();
 
         webView.setWebChromeClient(new WebChromeClient());
@@ -42,64 +39,39 @@ public class MainActivity extends AppCompatActivity {
         webView.setWebViewClient(new WebViewClient() {
 
             @Override
-            public void onPageFinished(WebView view, String url) {
-                lastUrl = url;
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                return handleVideoRedirect(request.getUrl().toString());
+            }
 
-                // First load fix
-                handler.postDelayed(() -> forceFolderFocus(), 600);
-
-                // Start watching for internal AJAX navigation
-                startUrlWatcher();
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                return handleVideoRedirect(url);
             }
         });
 
         webView.loadUrl("http://172.16.50.4/");
     }
 
-    private void startUrlWatcher() {
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                String current = webView.getUrl();
-                if (current != null && !current.equals(lastUrl)) {
-                    lastUrl = current;
+    private boolean handleVideoRedirect(String url) {
 
-                    // Apply focus fix again after internal navigation
-                    handler.postDelayed(() -> forceFolderFocus(), 500);
-                }
-                handler.postDelayed(this, 800);
-            }
-        }, 800);
-    }
+        String lower = url.toLowerCase();
 
-    private void forceFolderFocus() {
+        if (lower.endsWith(".mp4") ||
+            lower.endsWith(".mkv") ||
+            lower.endsWith(".avi") ||
+            lower.endsWith(".mov") ||
+            lower.endsWith(".wmv")) {
 
-        String js =
-                "(function() {" +
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(Uri.parse(url), "video/*");
+            intent.setPackage("org.videolan.vlc");
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
 
-                // Remove focus ONLY from top panel clickable elements
-                "document.querySelectorAll('header a, .breadcrumbs a, .powered-by a').forEach(function(el) {" +
-                "   el.setAttribute('tabindex','-1');" +
-                "});" +
+            return true; // prevent WebView from loading it
+        }
 
-                // Focus first folder/file link
-                "var first = document.querySelector('.item a, tr td.name a');" +
-                "if(first) {" +
-                "   first.focus();" +
-                "   first.scrollIntoView({block:'center'});" +
-                "}" +
-
-                // Enable video playback if present
-                "document.querySelectorAll('video').forEach(function(v){" +
-                "   v.controls = true;" +
-                "   v.autoplay = true;" +
-                "   v.muted = false;" +
-                "   v.play().catch(function(){});" +
-                "});" +
-
-                "})();";
-
-        webView.evaluateJavascript(js, null);
+        return false;
     }
 
     @Override
