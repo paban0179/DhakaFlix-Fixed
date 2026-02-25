@@ -3,7 +3,6 @@ package com.slymax.webview;
 import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.os.Handler;
-import android.view.KeyEvent;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -28,6 +27,10 @@ public class MainActivity extends AppCompatActivity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
+        settings.setAllowFileAccess(true);
+        settings.setAllowContentAccess(true);
+        settings.setUseWideViewPort(true);
+        settings.setLoadWithOverviewMode(true);
 
         webView.setFocusable(true);
         webView.setFocusableInTouchMode(true);
@@ -39,42 +42,63 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
 
-                // Wait 800ms to let h5ai fully initialize
-                handler.postDelayed(() -> forceFolderFocus(), 800);
+                // Apply fix multiple times because h5ai re-renders
+                applyFixRepeatedly();
             }
         });
 
         webView.loadUrl("http://172.16.50.4/");
     }
 
-    private void forceFolderFocus() {
+    private void applyFixRepeatedly() {
+
+        handler.postDelayed(this::forceFocusAndFixMedia, 500);
+        handler.postDelayed(this::forceFocusAndFixMedia, 1200);
+        handler.postDelayed(this::forceFocusAndFixMedia, 2000);
+    }
+
+    private void forceFocusAndFixMedia() {
 
         String js =
                 "(function() {" +
 
-                // Remove focus from top panel elements
-                "document.querySelectorAll('header *, #topbar *, .breadcrumbs *, .powered-by *').forEach(function(el) {" +
+                // Remove focus from top panels
+                "document.querySelectorAll('header *, #topbar *, .breadcrumbs *, .powered-by *, nav *').forEach(function(el) {" +
                 "   el.setAttribute('tabindex','-1');" +
                 "});" +
 
-                // Remove focus from sidebar
+                // Remove sidebar focus
                 "document.querySelectorAll('#sidebar *, #tree *').forEach(function(el) {" +
                 "   el.setAttribute('tabindex','-1');" +
                 "});" +
 
-                // Focus first actual folder/file link
+                // Focus first folder/file item
                 "var first = document.querySelector('.item a, tr td.name a');" +
                 "if(first) {" +
                 "   first.focus();" +
                 "   first.scrollIntoView({block:'center'});" +
                 "}" +
 
+                // Make images full screen height
+                "document.querySelectorAll('img').forEach(function(img){" +
+                "   img.style.maxHeight = '100vh';" +
+                "   img.style.width = 'auto';" +
+                "   img.style.display = 'block';" +
+                "   img.style.margin = '0 auto';" +
+                "});" +
+
+                // Enable video autoplay + controls
+                "document.querySelectorAll('video').forEach(function(v){" +
+                "   v.setAttribute('controls', true);" +
+                "   v.setAttribute('autoplay', true);" +
+                "   v.play().catch(function(){});" +
+                "});" +
+
                 "})();";
 
         webView.evaluateJavascript(js, null);
     }
 
-    // Proper BACK handling
     @Override
     public void onBackPressed() {
         if (webView.canGoBack()) {
@@ -82,11 +106,5 @@ public class MainActivity extends AppCompatActivity {
         } else {
             super.onBackPressed();
         }
-    }
-
-    // Optional: ensure DPAD works normally
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        return super.onKeyDown(keyCode, event);
     }
 }
