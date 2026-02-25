@@ -13,7 +13,7 @@ import androidx.appcompat.app.AppCompatActivity;
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
-    private Handler handler = new Handler();
+    private final Handler handler = new Handler();
     private String lastUrl = "";
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -27,23 +27,29 @@ public class MainActivity extends AppCompatActivity {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
+
+        // 🔥 Important for MP4 playback
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
-        settings.setUseWideViewPort(true);
-        settings.setLoadWithOverviewMode(true);
 
         webView.setFocusable(true);
+        webView.setFocusableInTouchMode(true);
         webView.requestFocus();
 
         webView.setWebChromeClient(new WebChromeClient());
 
         webView.setWebViewClient(new WebViewClient() {
+
             @Override
             public void onPageFinished(WebView view, String url) {
                 lastUrl = url;
+
+                // First load fix
+                handler.postDelayed(() -> forceFolderFocus(), 600);
+
+                // Start watching for internal AJAX navigation
                 startUrlWatcher();
-                applyFocusFix();
             }
         });
 
@@ -57,20 +63,22 @@ public class MainActivity extends AppCompatActivity {
                 String current = webView.getUrl();
                 if (current != null && !current.equals(lastUrl)) {
                     lastUrl = current;
-                    applyFocusFix();
+
+                    // Apply focus fix again after internal navigation
+                    handler.postDelayed(() -> forceFolderFocus(), 500);
                 }
                 handler.postDelayed(this, 800);
             }
         }, 800);
     }
 
-    private void applyFocusFix() {
+    private void forceFolderFocus() {
 
         String js =
                 "(function() {" +
 
-                // Remove only focusability, not content
-                "document.querySelectorAll('header a, #topbar a, .powered-by a').forEach(function(el) {" +
+                // Remove focus ONLY from top panel clickable elements
+                "document.querySelectorAll('header a, .breadcrumbs a, .powered-by a').forEach(function(el) {" +
                 "   el.setAttribute('tabindex','-1');" +
                 "});" +
 
@@ -81,19 +89,11 @@ public class MainActivity extends AppCompatActivity {
                 "   first.scrollIntoView({block:'center'});" +
                 "}" +
 
-                // Fullscreen posters
-                "document.querySelectorAll('img').forEach(function(img){" +
-                "   img.style.maxHeight='100vh';" +
-                "   img.style.width='auto';" +
-                "   img.style.display='block';" +
-                "   img.style.margin='0 auto';" +
-                "});" +
-
-                // Enable video playback
+                // Enable video playback if present
                 "document.querySelectorAll('video').forEach(function(v){" +
                 "   v.controls = true;" +
                 "   v.autoplay = true;" +
-                "   v.load();" +
+                "   v.muted = false;" +
                 "   v.play().catch(function(){});" +
                 "});" +
 
