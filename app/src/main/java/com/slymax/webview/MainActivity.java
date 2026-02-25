@@ -30,8 +30,6 @@ public class MainActivity extends AppCompatActivity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
-        settings.setAllowFileAccess(true);
-        settings.setAllowContentAccess(true);
 
         webView.setFocusable(true);
         webView.setFocusableInTouchMode(true);
@@ -41,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
 
         webView.setWebViewClient(new WebViewClient() {
 
-            // 🔥 Redirect video files to VLC
+            // 🔥 VLC redirect
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 return handleVideoRedirect(request.getUrl().toString());
@@ -54,11 +52,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onPageFinished(WebView view, String url) {
-
-                // Run multiple passes to defeat h5ai DOM rebuild
-                handler.postDelayed(() -> forceFolderFocus(), 600);
-                handler.postDelayed(() -> forceFolderFocus(), 1800);
-                handler.postDelayed(() -> forceFolderFocus(), 3200);
+                handler.postDelayed(() -> cleanPage(url), 800);
             }
         });
 
@@ -94,35 +88,36 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
 
-            return true; // prevent WebView from loading video
+            return true;
         }
 
         return false;
     }
 
-    private void forceFolderFocus() {
+    private void cleanPage(String url) {
 
         String js =
                 "(function() {" +
 
-                // Disable focus on top panel
-                "document.querySelectorAll('header *, #topbar *, .breadcrumbs *, .powered-by *').forEach(function(el) {" +
-                "   el.setAttribute('tabindex','-1');" +
-                "});" +
+                // Remove top panel and sidebar EXCEPT on homepage
+                "if(window.location.pathname !== '/' && window.location.pathname !== '') {" +
 
-                // Disable focus on sidebar
-                "document.querySelectorAll('#sidebar *, #tree *').forEach(function(el) {" +
-                "   el.setAttribute('tabindex','-1');" +
-                "});" +
+                "var top = document.querySelector('header, #topbar');" +
+                "if(top) top.remove();" +
 
-                // Focus first folder/file item
+                "var side = document.querySelector('#sidebar, #tree');" +
+                "if(side) side.remove();" +
+
+                "}" +
+
+                // Focus first folder/file
                 "var first = document.querySelector('.item a, tr td.name a');" +
                 "if(first) {" +
                 "   first.focus();" +
                 "   first.scrollIntoView({block:'center'});" +
                 "}" +
 
-                // Make poster images fill TV vertically
+                // Fullscreen posters vertically
                 "document.querySelectorAll('img').forEach(function(img) {" +
                 "   img.style.maxHeight = '100vh';" +
                 "   img.style.width = 'auto';" +
@@ -134,7 +129,6 @@ public class MainActivity extends AppCompatActivity {
         webView.evaluateJavascript(js, null);
     }
 
-    // Proper BACK handling
     @Override
     public void onBackPressed() {
         if (webView.canGoBack()) {
