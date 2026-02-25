@@ -41,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
 
         webView.setWebViewClient(new WebViewClient() {
 
-            // 🔥 Intercept ALL navigation attempts
+            // 🔥 Redirect video files to VLC
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 return handleVideoRedirect(request.getUrl().toString());
@@ -55,15 +55,17 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
 
-                // Let h5ai finish rendering
-                handler.postDelayed(() -> forceFolderFocus(), 800);
+                // Run multiple passes to defeat h5ai DOM rebuild
+                handler.postDelayed(() -> forceFolderFocus(), 600);
+                handler.postDelayed(() -> forceFolderFocus(), 1800);
+                handler.postDelayed(() -> forceFolderFocus(), 3200);
             }
         });
 
         webView.loadUrl("http://172.16.50.4/");
     }
 
-    // 🔥 Redirect ALL video files to VLC
+    // 🔥 VLC REDIRECT
     private boolean handleVideoRedirect(String url) {
 
         if (url == null) return false;
@@ -86,14 +88,13 @@ public class MainActivity extends AppCompatActivity {
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(intent);
             } catch (Exception e) {
-                // If VLC not installed, fallback to any video player
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.setDataAndType(Uri.parse(url), "video/*");
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(intent);
             }
 
-            return true; // Prevent WebView from loading video
+            return true; // prevent WebView from loading video
         }
 
         return false;
@@ -104,12 +105,12 @@ public class MainActivity extends AppCompatActivity {
         String js =
                 "(function() {" +
 
-                // Remove focus from top panel
+                // Disable focus on top panel
                 "document.querySelectorAll('header *, #topbar *, .breadcrumbs *, .powered-by *').forEach(function(el) {" +
                 "   el.setAttribute('tabindex','-1');" +
                 "});" +
 
-                // Remove focus from sidebar
+                // Disable focus on sidebar
                 "document.querySelectorAll('#sidebar *, #tree *').forEach(function(el) {" +
                 "   el.setAttribute('tabindex','-1');" +
                 "});" +
@@ -120,6 +121,13 @@ public class MainActivity extends AppCompatActivity {
                 "   first.focus();" +
                 "   first.scrollIntoView({block:'center'});" +
                 "}" +
+
+                // Make poster images fill TV vertically
+                "document.querySelectorAll('img').forEach(function(img) {" +
+                "   img.style.maxHeight = '100vh';" +
+                "   img.style.width = 'auto';" +
+                "   img.style.objectFit = 'contain';" +
+                "});" +
 
                 "})();";
 
