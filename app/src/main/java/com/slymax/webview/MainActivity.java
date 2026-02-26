@@ -3,7 +3,7 @@ package com.slymax.webview;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
+import android.view.KeyEvent;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -14,7 +14,6 @@ import androidx.appcompat.app.AppCompatActivity;
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
-    private final Handler handler = new Handler();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,11 +28,6 @@ public class MainActivity extends AppCompatActivity {
         settings.setMediaPlaybackRequiresUserGesture(false);
 
         webView.setWebViewClient(new WebViewClient() {
-
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                handler.postDelayed(() -> injectTVMode(), 600);
-            }
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -66,39 +60,77 @@ public class MainActivity extends AppCompatActivity {
         webView.loadUrl("http://172.16.50.4/");
     }
 
-    private void injectTVMode() {
+    // 🔥 CAPTURE DPAD KEYS
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+
+        if (event.getAction() == KeyEvent.ACTION_UP) {
+
+            int code = event.getKeyCode();
+
+            switch (code) {
+
+                case KeyEvent.KEYCODE_DPAD_UP:
+                case KeyEvent.KEYCODE_DPAD_DOWN:
+                case KeyEvent.KEYCODE_DPAD_LEFT:
+                case KeyEvent.KEYCODE_DPAD_RIGHT:
+                case KeyEvent.KEYCODE_DPAD_CENTER:
+                case KeyEvent.KEYCODE_ENTER:
+
+                    injectKeyIntoWebView(code);
+                    return true;
+            }
+        }
+
+        return super.dispatchKeyEvent(event);
+    }
+
+    // 🔥 SEND KEY TO WEB PAGE
+    private void injectKeyIntoWebView(int keyCode) {
 
         String js =
-                "(function() {" +
+            "javascript:(function() {" +
+            "if(!window.androidNativeKey) {" +
+            "window.androidNativeKey = function(code) {" +
 
-                "if(window.location.pathname !== '/' && window.location.pathname !== '') {" +
+            "var focused = document.activeElement;" +
 
-                "if(!document.getElementById('tv-style')) {" +
-                "var style=document.createElement('style');" +
-                "style.id='tv-style';" +
-                "style.innerHTML='" +
+            "switch(code) {" +
 
-                "header,#topbar,.topbar,.header{display:none!important;}" +
-                "#sidebar,#tree,.sidebar,.tree,nav{display:none!important;}" +
-                "main,.content,#content{width:100%!important;margin:0!important;}" +
+            // UP
+            "case 19:" +
+            "  var prev = focused.parentElement.previousElementSibling;" +
+            "  if(prev) prev.querySelector('a')?.focus();" +
+            "  break;" +
 
-                "';" +
-                "document.head.appendChild(style);" +
-                "}" +
+            // DOWN
+            "case 20:" +
+            "  var next = focused.parentElement.nextElementSibling;" +
+            "  if(next) next.querySelector('a')?.focus();" +
+            "  break;" +
 
-                "}" +
+            // LEFT
+            "case 21:" +
+            "  focused.blur();" +
+            "  break;" +
 
-                // Poster fullscreen
-                "if(document.images.length===1){" +
-                "var img=document.images[0];" +
-                "document.body.style.margin='0';" +
-                "img.style.height='100vh';" +
-                "img.style.width='auto';" +
-                "img.style.display='block';" +
-                "img.style.margin='0 auto';" +
-                "}" +
+            // RIGHT
+            "case 22:" +
+            "  focused.focus();" +
+            "  break;" +
 
-                "})();";
+            // ENTER / CENTER
+            "case 23:" +
+            "case 66:" +
+            "  focused.click();" +
+            "  break;" +
+
+            "}" +
+            "};" +
+            "}" +
+
+            "window.androidNativeKey(" + keyCode + ");" +
+            "})();";
 
         webView.evaluateJavascript(js, null);
     }
