@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity;
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
+    private boolean isLaunchingVLC = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,16 +33,22 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
 
-                String url = request.getUrl().toString().toLowerCase();
+                String url = request.getUrl().toString();
+                String lower = url.toLowerCase();
 
-                if (url.endsWith(".mp4") ||
-                        url.endsWith(".mkv") ||
-                        url.endsWith(".avi") ||
-                        url.endsWith(".mov")) {
+                // Only intercept actual video files
+                if (lower.endsWith(".mp4") ||
+                        lower.endsWith(".mkv") ||
+                        lower.endsWith(".avi") ||
+                        lower.endsWith(".mov")) {
+
+                    if (isLaunchingVLC) return true;
+                    isLaunchingVLC = true;
 
                     Intent intent = new Intent(Intent.ACTION_VIEW);
                     intent.setDataAndType(Uri.parse(url), "video/*");
                     intent.setPackage("org.videolan.vlc");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
                     try {
                         startActivity(intent);
@@ -61,6 +68,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        isLaunchingVLC = false;
+    }
+
+    // 🔥 DPAD Handling
+    @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
 
         if (event.getAction() == KeyEvent.ACTION_UP) {
@@ -70,11 +84,8 @@ public class MainActivity extends AppCompatActivity {
             switch (code) {
                 case KeyEvent.KEYCODE_DPAD_UP:
                 case KeyEvent.KEYCODE_DPAD_DOWN:
-                case KeyEvent.KEYCODE_DPAD_LEFT:
-                case KeyEvent.KEYCODE_DPAD_RIGHT:
                 case KeyEvent.KEYCODE_DPAD_CENTER:
                 case KeyEvent.KEYCODE_ENTER:
-
                     injectKeyIntoWebView(code);
                     return true;
             }
@@ -88,34 +99,62 @@ public class MainActivity extends AppCompatActivity {
         String js =
                 "javascript:(function() {" +
 
-                        "document.querySelectorAll('header *, #topbar *, nav *, #sidebar *, .sidebar *, .tree *').forEach(function(el){" +
-                        "el.setAttribute('tabindex','-1'); el.blur();" +
-                        "});" +
+                        // Disable header + sidebar focus
+                        "document.querySelectorAll('header *, #topbar *, nav *, #sidebar *, .sidebar *, .tree *')" +
+                        ".forEach(function(el){ el.setAttribute('tabindex','-1'); el.blur(); });" +
 
-                        "var focused = document.activeElement;" +
-                        "if(!focused || focused.tagName !== 'A') {" +
-                        "var first = document.querySelector('.item a, tr td.name a');" +
+                        // Poster fullscreen
+                        "if(document.images.length === 1){" +
+                        "document.documentElement.style.margin='0';" +
+                        "document.documentElement.style.padding='0';" +
+                        "document.body.style.margin='0';" +
+                        "document.body.style.padding='0';" +
+                        "document.body.style.overflow='hidden';" +
+
+                        "var img=document.images[0];" +
+                        "img.style.position='fixed';" +
+                        "img.style.top='0';" +
+                        "img.style.left='50%';" +
+                        "img.style.transform='translateX(-50%)';" +
+                        "img.style.height='100vh';" +
+                        "img.style.width='auto';" +
+                        "img.style.objectFit='contain';" +
+                        "return;" +
+                        "}" +
+
+                        // Ensure focus inside file list
+                        "var focused=document.activeElement;" +
+                        "if(!focused || focused.tagName!=='A'){" +
+                        "var first=document.querySelector('.item a, tr td.name a');" +
                         "if(first) first.focus();" +
-                        "focused = first;" +
+                        "focused=first;" +
                         "}" +
 
                         "if(!focused) return;" +
 
                         "switch(" + keyCode + ") {" +
 
-                        "case 19:" + // UP
-                        "var prev = focused.closest('tr')?.previousElementSibling;" +
+                        // UP
+                        "case 19:" +
+                        "var prev=focused.closest('tr')?.previousElementSibling;" +
                         "if(prev) prev.querySelector('a')?.focus();" +
                         "break;" +
 
-                        "case 20:" + // DOWN
-                        "var next = focused.closest('tr')?.nextElementSibling;" +
+                        // DOWN
+                        "case 20:" +
+                        "var next=focused.closest('tr')?.nextElementSibling;" +
                         "if(next) next.querySelector('a')?.focus();" +
                         "break;" +
 
+                        // ENTER
                         "case 23:" +
                         "case 66:" +
+                        "if(focused.tagName!=='A'){" +
+                        "var link=focused.querySelector('a');" +
+                        "if(link) link.click();" +
+                        "} else {" +
                         "focused.click();" +
+                        "}" +
                         "break;" +
 
                         "}" +
