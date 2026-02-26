@@ -1,122 +1,51 @@
-package com.slymax.webview;
+private void removePanelsIfNotHome() {
 
-import android.content.Intent;
-import android.net.Uri;
-import android.os.Bundle;
-import android.os.Handler;
-import android.webkit.WebChromeClient;
-import android.webkit.WebSettings;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
+    String js =
+        "(function() {" +
 
-import androidx.appcompat.app.AppCompatActivity;
+        "if(window.location.pathname !== '/' && window.location.pathname !== '') {" +
 
-public class MainActivity extends AppCompatActivity {
+        // Inject permanent CSS to hide panels
+        "if(!document.getElementById('tv-mode-style')) {" +
+        "   var style = document.createElement('style');" +
+        "   style.id = 'tv-mode-style';" +
+        "   style.innerHTML = '" +
 
-    private WebView webView;
-    private final Handler handler = new Handler();
+        // Hide header
+        "header, #topbar, .topbar, .header { display:none !important; }" +
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+        // Hide sidebar / tree / nav
+        "#sidebar, #tree, .sidebar, .tree, nav { display:none !important; }" +
 
-        webView = new WebView(this);
-        setContentView(webView);
+        // Expand main content to full width
+        "main, .content, #content { width:100% !important; margin:0 !important; }" +
 
-        WebSettings settings = webView.getSettings();
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setMediaPlaybackRequiresUserGesture(false);
+        "';" +
+        "   document.head.appendChild(style);" +
+        "}" +
 
-        webView.setFocusable(true);
-        webView.setFocusableInTouchMode(true);
-        webView.requestFocus();
+        "}" +
 
-        webView.setWebChromeClient(new WebChromeClient());
+        // Force focus into file list
+        "setTimeout(function(){" +
+        "   var first = document.querySelector('.item a, tr td.name a');" +
+        "   if(first) {" +
+        "       first.focus();" +
+        "       first.scrollIntoView({block:'center'});" +
+        "   }" +
+        "}, 200);" +
 
-        webView.setWebViewClient(new WebViewClient() {
+        // Fullscreen poster image
+        "if(document.images.length === 1) {" +
+        "   var img = document.images[0];" +
+        "   document.body.style.margin='0';" +
+        "   img.style.height='100vh';" +
+        "   img.style.width='auto';" +
+        "   img.style.display='block';" +
+        "   img.style.margin='0 auto';" +
+        "}" +
 
-            @Override
-            public void onPageFinished(WebView view, String url) {
+        "})();";
 
-                handler.postDelayed(() -> removePanelsIfNotHome(url), 700);
-            }
-
-            @Override
-            public boolean shouldOverrideUrlLoading(WebView view, String url) {
-
-                if (url.endsWith(".mp4") ||
-                    url.endsWith(".mkv") ||
-                    url.endsWith(".avi") ||
-                    url.endsWith(".mov")) {
-
-                    Intent intent = new Intent(Intent.ACTION_VIEW);
-                    intent.setPackage("org.videolan.vlc");
-                    intent.setDataAndType(Uri.parse(url), "video/*");
-
-                    try {
-                        startActivity(intent);
-                    } catch (Exception e) {
-                        intent.setPackage(null);
-                        startActivity(intent);
-                    }
-
-                    return true;
-                }
-
-                return false;
-            }
-        });
-
-        webView.loadUrl("http://172.16.50.4/");
-    }
-
-    private void removePanelsIfNotHome(String url) {
-
-        String js =
-                "(function() {" +
-
-                // Check if NOT home page
-                "if(window.location.pathname !== '/' && window.location.pathname !== '') {" +
-
-                // Completely remove header / topbar
-                "var header = document.querySelector('header, #topbar');" +
-                "if(header) header.remove();" +
-
-                // Completely remove left sidebar / tree
-                "var sidebar = document.querySelector('#sidebar, #tree');" +
-                "if(sidebar) sidebar.remove();" +
-
-                "}" +
-
-                // Auto-focus first item (keep navigation smooth)
-                "var first = document.querySelector('.item a, tr td.name a');" +
-                "if(first) {" +
-                "   first.focus();" +
-                "   first.scrollIntoView({block:'center'});" +
-                "}" +
-
-                // If single image page (poster), fill vertically
-                "if(document.images.length === 1) {" +
-                "   var img = document.images[0];" +
-                "   document.body.style.margin='0';" +
-                "   img.style.height='100vh';" +
-                "   img.style.width='auto';" +
-                "   img.style.display='block';" +
-                "   img.style.margin='0 auto';" +
-                "}" +
-
-                "})();";
-
-        webView.evaluateJavascript(js, null);
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (webView.canGoBack()) {
-            webView.goBack();
-        } else {
-            super.onBackPressed();
-        }
-    }
+    webView.evaluateJavascript(js, null);
 }
