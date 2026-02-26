@@ -31,12 +31,46 @@ public class MainActivity extends AppCompatActivity {
         webView.setWebViewClient(new WebViewClient() {
 
             @Override
+            public void onPageFinished(WebView view, String url) {
+
+                String js =
+                        "javascript:(function() {" +
+
+                        // Disable header/sidebar focus permanently
+                        "document.querySelectorAll('header *, #topbar *, nav *, #sidebar *, .sidebar *, .tree *')" +
+                        ".forEach(function(el){ el.setAttribute('tabindex','-1'); el.blur(); });" +
+
+                        // Poster fullscreen immediately
+                        "if(document.images.length === 1){" +
+                        "document.documentElement.style.margin='0';" +
+                        "document.body.style.margin='0';" +
+                        "document.body.style.overflow='hidden';" +
+                        "var img=document.images[0];" +
+                        "img.style.position='fixed';" +
+                        "img.style.top='0';" +
+                        "img.style.left='50%';" +
+                        "img.style.transform='translateX(-50%)';" +
+                        "img.style.height='100vh';" +
+                        "img.style.width='auto';" +
+                        "img.style.objectFit='contain';" +
+                        "return;" +
+                        "}" +
+
+                        // Force first file focus on load
+                        "var first=document.querySelector('.item a, tr td.name a');" +
+                        "if(first) first.focus();" +
+
+                        "})();";
+
+                webView.evaluateJavascript(js, null);
+            }
+
+            @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
 
                 String url = request.getUrl().toString();
                 String lower = url.toLowerCase();
 
-                // Only intercept actual video files
                 if (lower.endsWith(".mp4") ||
                         lower.endsWith(".mkv") ||
                         lower.endsWith(".avi") ||
@@ -73,7 +107,6 @@ public class MainActivity extends AppCompatActivity {
         isLaunchingVLC = false;
     }
 
-    // 🔥 DPAD Handling
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
 
@@ -81,58 +114,18 @@ public class MainActivity extends AppCompatActivity {
 
             int code = event.getKeyCode();
 
-            switch (code) {
-                case KeyEvent.KEYCODE_DPAD_UP:
-                case KeyEvent.KEYCODE_DPAD_DOWN:
-                case KeyEvent.KEYCODE_DPAD_CENTER:
-                case KeyEvent.KEYCODE_ENTER:
-                    injectKeyIntoWebView(code);
-                    return true;
-            }
-        }
+            if (code == KeyEvent.KEYCODE_DPAD_UP ||
+                code == KeyEvent.KEYCODE_DPAD_DOWN ||
+                code == KeyEvent.KEYCODE_DPAD_CENTER ||
+                code == KeyEvent.KEYCODE_ENTER) {
 
-        return super.dispatchKeyEvent(event);
-    }
+                String js =
+                        "javascript:(function() {" +
 
-    private void injectKeyIntoWebView(int keyCode) {
-
-        String js =
-                "javascript:(function() {" +
-
-                        // Disable header + sidebar focus
-                        "document.querySelectorAll('header *, #topbar *, nav *, #sidebar *, .sidebar *, .tree *')" +
-                        ".forEach(function(el){ el.setAttribute('tabindex','-1'); el.blur(); });" +
-
-                        // Poster fullscreen
-                        "if(document.images.length === 1){" +
-                        "document.documentElement.style.margin='0';" +
-                        "document.documentElement.style.padding='0';" +
-                        "document.body.style.margin='0';" +
-                        "document.body.style.padding='0';" +
-                        "document.body.style.overflow='hidden';" +
-
-                        "var img=document.images[0];" +
-                        "img.style.position='fixed';" +
-                        "img.style.top='0';" +
-                        "img.style.left='50%';" +
-                        "img.style.transform='translateX(-50%)';" +
-                        "img.style.height='100vh';" +
-                        "img.style.width='auto';" +
-                        "img.style.objectFit='contain';" +
-                        "return;" +
-                        "}" +
-
-                        // Ensure focus inside file list
                         "var focused=document.activeElement;" +
-                        "if(!focused || focused.tagName!=='A'){" +
-                        "var first=document.querySelector('.item a, tr td.name a');" +
-                        "if(first) first.focus();" +
-                        "focused=first;" +
-                        "}" +
-
                         "if(!focused) return;" +
 
-                        "switch(" + keyCode + ") {" +
+                        "switch(" + code + ") {" +
 
                         // UP
                         "case 19:" +
@@ -149,19 +142,19 @@ public class MainActivity extends AppCompatActivity {
                         // ENTER
                         "case 23:" +
                         "case 66:" +
-                        "if(focused.tagName!=='A'){" +
-                        "var link=focused.querySelector('a');" +
-                        "if(link) link.click();" +
-                        "} else {" +
-                        "focused.click();" +
-                        "}" +
+                        "if(focused.tagName==='A') focused.click();" +
                         "break;" +
 
                         "}" +
 
                         "})();";
 
-        webView.evaluateJavascript(js, null);
+                webView.evaluateJavascript(js, null);
+                return true;
+            }
+        }
+
+        return super.dispatchKeyEvent(event);
     }
 
     @Override
