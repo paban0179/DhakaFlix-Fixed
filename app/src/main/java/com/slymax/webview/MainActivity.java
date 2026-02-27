@@ -29,7 +29,7 @@ public class MainActivity extends AppCompatActivity {
         settings.setDomStorageEnabled(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
 
-        // ✅ JavaScript bridge for opening video
+        // 🔥 JavaScript bridge for VLC
         webView.addJavascriptInterface(new Object() {
 
             @JavascriptInterface
@@ -38,16 +38,14 @@ public class MainActivity extends AppCompatActivity {
                 if (isLaunchingVLC) return;
                 isLaunchingVLC = true;
 
-                Intent intent = new Intent(Intent.ACTION_VIEW);
-                intent.setDataAndType(Uri.parse(url), "video/*");
-                intent.setPackage("org.videolan.vlc");
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
                 try {
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(Uri.parse(url), "video/*");
+                    intent.setPackage("org.videolan.vlc");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(intent);
                 } catch (Exception e) {
-                    intent.setPackage(null);
-                    startActivity(intent);
+                    // If VLC not installed, do nothing
                 }
             }
 
@@ -92,7 +90,19 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                return false; // Let WebView handle normal navigation
+
+                String url = request.getUrl().toString().toLowerCase();
+
+                // 🚫 NEVER allow WebView to load video files
+                if (url.endsWith(".mp4") ||
+                        url.endsWith(".mkv") ||
+                        url.endsWith(".avi") ||
+                        url.endsWith(".mov")) {
+
+                    return true; // Block WebView
+                }
+
+                return false;
             }
         });
 
@@ -151,7 +161,8 @@ public class MainActivity extends AppCompatActivity {
                         "if(focused.tagName==='A'){" +
                         "var href=focused.getAttribute('href');" +
                         "if(href && (href.endsWith('.mp4')||href.endsWith('.mkv')||href.endsWith('.avi')||href.endsWith('.mov'))){" +
-                        "Android.openVideo(href);" +
+                        "var fullUrl = new URL(href, window.location.href).href;" +
+                        "Android.openVideo(fullUrl);" +
                         "} else {" +
                         "focused.click();" +
                         "}" +
