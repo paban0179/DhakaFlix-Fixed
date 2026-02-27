@@ -1,57 +1,175 @@
-@Override
-public boolean dispatchKeyEvent(KeyEvent event) {
+package com.slymax.webview;
 
-    if (event.getAction() == KeyEvent.ACTION_UP) {
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Bundle;
+import android.view.KeyEvent;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 
-        int code = event.getKeyCode();
+import androidx.appcompat.app.AppCompatActivity;
 
-        if (code == KeyEvent.KEYCODE_DPAD_UP ||
-            code == KeyEvent.KEYCODE_DPAD_DOWN ||
-            code == KeyEvent.KEYCODE_DPAD_CENTER ||
-            code == KeyEvent.KEYCODE_ENTER) {
+public class MainActivity extends AppCompatActivity {
 
-            String js =
-                    "javascript:(function() {" +
+    private WebView webView;
+    private boolean isLaunchingVLC = false;
 
-                    "var focused=document.activeElement;" +
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
-                    // If focus escaped to header/sidebar, force back to list
-                    "if(!focused || focused.closest('#topbar, header, nav, #sidebar, .sidebar')){" +
-                    "var first=document.querySelector('.item a, tr td.name a');" +
-                    "if(first) first.focus();" +
-                    "focused=first;" +
-                    "}" +
+        webView = new WebView(this);
+        setContentView(webView);
 
-                    "if(!focused) return;" +
+        WebSettings settings = webView.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setMediaPlaybackRequiresUserGesture(false);
 
-                    "switch(" + code + ") {" +
+        webView.setWebViewClient(new WebViewClient() {
 
-                    // UP
-                    "case 19:" +
-                    "var prev=focused.closest('tr')?.previousElementSibling;" +
-                    "if(prev) prev.querySelector('a')?.focus();" +
-                    "break;" +
+            @Override
+            public void onPageFinished(WebView view, String url) {
 
-                    // DOWN
-                    "case 20:" +
-                    "var next=focused.closest('tr')?.nextElementSibling;" +
-                    "if(next) next.querySelector('a')?.focus();" +
-                    "break;" +
+                String js =
+                        "javascript:(function() {" +
 
-                    // ENTER
-                    "case 23:" +
-                    "case 66:" +
-                    "if(focused.tagName==='A') focused.click();" +
-                    "break;" +
+                        // Disable header/sidebar focus
+                        "document.querySelectorAll('header *, #topbar *, nav *, #sidebar *, .sidebar *, .tree *')" +
+                        ".forEach(function(el){ el.setAttribute('tabindex','-1'); el.blur(); });" +
 
-                    "}" +
+                        // Poster fullscreen
+                        "if(document.images.length === 1){" +
+                        "document.documentElement.style.margin='0';" +
+                        "document.body.style.margin='0';" +
+                        "document.body.style.overflow='hidden';" +
+                        "var img=document.images[0];" +
+                        "img.style.position='fixed';" +
+                        "img.style.top='0';" +
+                        "img.style.left='50%';" +
+                        "img.style.transform='translateX(-50%)';" +
+                        "img.style.height='100vh';" +
+                        "img.style.width='auto';" +
+                        "img.style.objectFit='contain';" +
+                        "return;" +
+                        "}" +
 
-                    "})();";
+                        // Focus first file
+                        "var first=document.querySelector('.item a, tr td.name a');" +
+                        "if(first) first.focus();" +
 
-            webView.evaluateJavascript(js, null);
-            return true;
-        }
+                        "})();";
+
+                webView.evaluateJavascript(js, null);
+            }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+
+                String url = request.getUrl().toString().toLowerCase();
+
+                if (url.endsWith(".mp4") ||
+                        url.endsWith(".mkv") ||
+                        url.endsWith(".avi") ||
+                        url.endsWith(".mov")) {
+
+                    if (isLaunchingVLC) return true;
+                    isLaunchingVLC = true;
+
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(Uri.parse(url), "video/*");
+                    intent.setPackage("org.videolan.vlc");
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+                    try {
+                        startActivity(intent);
+                    } catch (Exception e) {
+                        intent.setPackage(null);
+                        startActivity(intent);
+                    }
+
+                    return true;
+                }
+
+                return false;
+            }
+        });
+
+        webView.loadUrl("http://172.16.50.4/");
     }
 
-    return super.dispatchKeyEvent(event);
+    @Override
+    protected void onResume() {
+        super.onResume();
+        isLaunchingVLC = false;
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+
+        if (event.getAction() == KeyEvent.ACTION_UP) {
+
+            int code = event.getKeyCode();
+
+            if (code == KeyEvent.KEYCODE_DPAD_UP ||
+                code == KeyEvent.KEYCODE_DPAD_DOWN ||
+                code == KeyEvent.KEYCODE_DPAD_CENTER ||
+                code == KeyEvent.KEYCODE_ENTER) {
+
+                String js =
+                        "javascript:(function() {" +
+
+                        "var focused=document.activeElement;" +
+
+                        // If focus escaped, bring back
+                        "if(!focused || focused.closest('#topbar, header, nav, #sidebar, .sidebar')){" +
+                        "var first=document.querySelector('.item a, tr td.name a');" +
+                        "if(first) first.focus();" +
+                        "focused=first;" +
+                        "}" +
+
+                        "if(!focused) return;" +
+
+                        "switch(" + code + ") {" +
+
+                        // UP
+                        "case 19:" +
+                        "var prev=focused.closest('tr')?.previousElementSibling;" +
+                        "if(prev) prev.querySelector('a')?.focus();" +
+                        "break;" +
+
+                        // DOWN
+                        "case 20:" +
+                        "var next=focused.closest('tr')?.nextElementSibling;" +
+                        "if(next) next.querySelector('a')?.focus();" +
+                        "break;" +
+
+                        // ENTER
+                        "case 23:" +
+                        "case 66:" +
+                        "if(focused.tagName==='A') focused.click();" +
+                        "break;" +
+
+                        "}" +
+
+                        "})();";
+
+                webView.evaluateJavascript(js, null);
+                return true;
+            }
+        }
+
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (webView.canGoBack()) {
+            webView.goBack();
+        } else {
+            super.onBackPressed();
+        }
+    }
 }
