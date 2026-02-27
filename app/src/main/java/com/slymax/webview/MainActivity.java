@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.KeyEvent;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -27,6 +28,30 @@ public class MainActivity extends AppCompatActivity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
+
+        // ✅ JavaScript bridge for opening video
+        webView.addJavascriptInterface(new Object() {
+
+            @JavascriptInterface
+            public void openVideo(String url) {
+
+                if (isLaunchingVLC) return;
+                isLaunchingVLC = true;
+
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setDataAndType(Uri.parse(url), "video/*");
+                intent.setPackage("org.videolan.vlc");
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+                try {
+                    startActivity(intent);
+                } catch (Exception e) {
+                    intent.setPackage(null);
+                    startActivity(intent);
+                }
+            }
+
+        }, "Android");
 
         webView.setWebViewClient(new WebViewClient() {
 
@@ -67,33 +92,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-
-                String url = request.getUrl().toString().toLowerCase();
-
-                if (url.endsWith(".mp4") ||
-                        url.endsWith(".mkv") ||
-                        url.endsWith(".avi") ||
-                        url.endsWith(".mov")) {
-
-                    if (isLaunchingVLC) return true;
-                    isLaunchingVLC = true;
-
-                    Intent intent = new Intent(Intent.ACTION_VIEW);
-                    intent.setDataAndType(Uri.parse(url), "video/*");
-                    intent.setPackage("org.videolan.vlc");
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
-                    try {
-                        startActivity(intent);
-                    } catch (Exception e) {
-                        intent.setPackage(null);
-                        startActivity(intent);
-                    }
-
-                    return true;
-                }
-
-                return false;
+                return false; // Let WebView handle normal navigation
             }
         });
 
@@ -149,7 +148,14 @@ public class MainActivity extends AppCompatActivity {
                         // ENTER
                         "case 23:" +
                         "case 66:" +
-                        "if(focused.tagName==='A') focused.click();" +
+                        "if(focused.tagName==='A'){" +
+                        "var href=focused.getAttribute('href');" +
+                        "if(href && (href.endsWith('.mp4')||href.endsWith('.mkv')||href.endsWith('.avi')||href.endsWith('.mov'))){" +
+                        "Android.openVideo(href);" +
+                        "} else {" +
+                        "focused.click();" +
+                        "}" +
+                        "}" +
                         "break;" +
 
                         "}" +
